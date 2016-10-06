@@ -26,19 +26,26 @@ import urllib2
 
 import gabriel
 
+from sys import platform
 
-def get_ip(iface = 'eth0'):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sockfd = sock.fileno()
-    SIOCGIFADDR = 0x8915
 
-    ifreq = struct.pack('16sH14s', iface, socket.AF_INET, '\x00' * 14)
-    try:
-        res = fcntl.ioctl(sockfd, SIOCGIFADDR, ifreq)
-    except:
-        return None
-    ip = struct.unpack('16sH2x4s8x', res)[2]
-    return socket.inet_ntoa(ip)
+def get_ip(iface='eth0'):
+    if platform == "linux" or platform == "linux2":
+        # linux
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sockfd = sock.fileno()
+        SIOCGIFADDR = 0x8915
+
+        ifreq = struct.pack('16sH14s', iface, socket.AF_INET, '\x00' * 14)
+        try:
+            res = fcntl.ioctl(sockfd, SIOCGIFADDR, ifreq)
+        except:
+            return None
+        ip = struct.unpack('16sH2x4s8x', res)[2]
+        return socket.inet_ntoa(ip)
+    else:
+        iface = 'eh0'
+        return socket.gethostbyname(socket.gethostname())
 
 
 def get_public_ip():
@@ -47,7 +54,7 @@ def get_public_ip():
     return s.getsockname()[0]
 
 
-def get_registry_server_address(address = None):
+def get_registry_server_address(address=None):
     # get ip and port for registry server
     if address is None:
         UPnP_client = gabriel.network.UPnPClient()
