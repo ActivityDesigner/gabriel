@@ -52,4 +52,5 @@ class Protocol_result(object):
     JSON_KEY_SPEECH = "speech"
     JSON_KEY_IMAGES_ANIMATION = "animation"
     JSON_KEY_VIDEO = "video"
+    JSON_KEY_FEATURES = "detection"
 

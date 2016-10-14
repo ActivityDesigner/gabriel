@@ -28,6 +28,7 @@ import struct
 import sys
 import time
 import pdb
+
 if os.path.isdir("../gabriel"):
     sys.path.insert(0, "..")
 import gabriel
@@ -36,19 +37,22 @@ import json
 import cv2
 import numpy as np
 import base64
+import requests
+
 LOG = gabriel.logging.getLogger(__name__)
-ANDROID_CLIENT=True
+ANDROID_CLIENT = True
+
 
 def process_command_line(argv):
     VERSION = 'gabriel proxy : %s' % gabriel.Const.VERSION
     DESCRIPTION = "Gabriel cognitive assistance"
 
     parser = OptionParser(usage='%prog [option]', version=VERSION,
-            description=DESCRIPTION)
+                          description=DESCRIPTION)
 
     parser.add_option(
-            '-s', '--address', action='store', dest='address',
-            help="(IP address:port number) of directory server")
+        '-s', '--address', action='store', dest='address',
+        help="(IP address:port number) of directory server")
     settings, args = parser.parse_args(argv)
     if len(args) >= 1:
         parser.error("invalid arguement")
@@ -58,37 +62,49 @@ def process_command_line(argv):
             parser.error("Need address and port. Ex) 10.0.0.1:8081")
     return settings, args
 
-def object_detection(image):
-    objects = {'aed' : '52053'}
+
+def object_detection():
+    objects = {'aed': '52053'}
     results = []
     for object, port in objects.iteritems():
-        r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port +"/0", files={'picture': image})
+        files = {'picture': open('temp.jpg', 'rb')}
+        r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
+
         response = eval(r.content)
-        area = response[0][1]
-        confidence = float(response[0][2])
-        results.append({'feature': object, 'confidence' :confidence, 'area': area})
+        if len(response) > 0:
+            os.remove("temp.jpg")
+            area = response[0][1]
+            confidence = float(response[0][2])
+            results.append({'feature': object, 'confidence': confidence, 'area': area})
+
+    results.append({
+        'feature': "button",
+        'confidence': 3.3,
+        'area': [20, 30, 300, 500]
+    })
     return json.dumps(results)
 
-class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
 
+class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
     def add_to_byte_array(self, byte_array, extra_bytes):
-        return struct.pack("!{}s{}s".format(len(byte_array),len(extra_bytes)), byte_array, extra_bytes)
-        
+        return struct.pack("!{}s{}s".format(len(byte_array), len(extra_bytes)), byte_array, extra_bytes)
+
     def handle(self, header, data):
         # PERFORM Cognitive Assistance Processing
         LOG.info("processing: ")
         LOG.info("%s\n" % header)
-        np_data=np.fromstring(data, dtype=np.uint8)
-        bgr_img=cv2.imdecode(np_data,cv2.IMREAD_COLOR)
-        mirror_img=cv2.flip(bgr_img,1)
-        _, jpeg_img=cv2.imencode('.jpg', mirror_img)
+        np_data = np.fromstring(data, dtype=np.uint8)
+        bgr_img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
+        mirror_img = cv2.flip(bgr_img, 1)
+        _, jpeg_img = cv2.imencode('.jpg', mirror_img)
+        cv2.imwrite("temp.jpg", bgr_img)
 
         if ANDROID_CLIENT:
             # old version return
             if gabriel.Const.LEGACY_JSON_ONLY_RESULT:
-                jpeg_str = base64.b64encode(jpeg_img)                        
-                msg={
-                    gabriel.Protocol_result.JSON_KEY_STATUS:'success',
+                jpeg_str = base64.b64encode(jpeg_img)
+                msg = {
+                    gabriel.Protocol_result.JSON_KEY_STATUS: 'success',
                     gabriel.Protocol_result.JSON_KEY_IMAGE: jpeg_str,
                     gabriel.Protocol_result.JSON_KEY_IMAGES_ANIMATION: [jpeg_str],
                     gabriel.Protocol_result.JSON_KEY_SPEECH: "mirror"
@@ -97,35 +113,35 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
             # new gabriel version return
             else:
                 # image data
-                header[gabriel.Protocol_result.JSON_KEY_STATUS]='success'
+                header[gabriel.Protocol_result.JSON_KEY_STATUS] = 'success'
                 # numpy tostring is equal to tobytes
-                rtn_data=jpeg_img.tostring()
+                rtn_data = jpeg_img.tostring()
                 # header has (offset, size) for each data type
-                header[gabriel.Protocol_result.JSON_KEY_IMAGE]=(0, len(rtn_data))
+                header[gabriel.Protocol_result.JSON_KEY_IMAGE] = (0, len(rtn_data))
 
                 # animation data
                 # animation is two images: before mirror and after mirror
-                offset=len(rtn_data)
-                _, ori_img=cv2.imencode('.jpg', bgr_img)                
-                animation_data=[jpeg_img.tostring(), ori_img.tostring()]
+                offset = len(rtn_data)
+                _, ori_img = cv2.imencode('.jpg', bgr_img)
+                animation_data = [jpeg_img.tostring(), ori_img.tostring()]
                 # animation bytes format:
                 # first integer: number of frames
                 # for each frame: size of the frame + data
-                animation_bytes=struct.pack("!I", len(animation_data))
+                animation_bytes = struct.pack("!I", len(animation_data))
                 for frame in animation_data:
-                    frame_bytes=struct.pack("!I{}s".format(len(frame)), len(frame), frame)
-                    animation_bytes=self.add_to_byte_array(animation_bytes, frame_bytes)
-                rtn_data=self.add_to_byte_array(rtn_data, animation_bytes)
-                header[gabriel.Protocol_result.JSON_KEY_IMAGES_ANIMATION]=(offset, len(animation_bytes))
+                    frame_bytes = struct.pack("!I{}s".format(len(frame)), len(frame), frame)
+                    animation_bytes = self.add_to_byte_array(animation_bytes, frame_bytes)
+                rtn_data = self.add_to_byte_array(rtn_data, animation_bytes)
+                header[gabriel.Protocol_result.JSON_KEY_IMAGES_ANIMATION] = (offset, len(animation_bytes))
 
                 # speech data
-                offset=len(rtn_data)
-                speech="mirror"
-                rtn_data=self.add_to_byte_array(rtn_data, speech)
-                header[gabriel.Protocol_result.JSON_KEY_SPEECH]=(offset, len(speech))
+                offset = len(rtn_data)
+                speech = "mirror"
+                rtn_data = self.add_to_byte_array(rtn_data, speech)
+                header[gabriel.Protocol_result.JSON_KEY_SPEECH] = (offset, len(speech))
 
                 # object detection
-                features = object_detection(jpeg_img)
+                features = object_detection()
                 offset = len(rtn_data)
                 rtn_data = self.add_to_byte_array(rtn_data, features)
                 header[gabriel.Protocol_result.JSON_KEY_FEATURES] = (offset, len(features))
@@ -153,11 +169,11 @@ if __name__ == "__main__":
 
     # image receiving and processing threads
     image_queue = Queue.Queue(gabriel.Const.APP_LEVEL_TOKEN_SIZE)
-    print "TOKEN SIZE OF OFFLOADING ENGINE: %d" % gabriel.Const.APP_LEVEL_TOKEN_SIZE # TODO
+    print "TOKEN SIZE OF OFFLOADING ENGINE: %d" % gabriel.Const.APP_LEVEL_TOKEN_SIZE  # TODO
     video_receive_client = gabriel.proxy.SensorReceiveClient((video_ip, video_port), image_queue)
     video_receive_client.start()
     video_receive_client.isDaemon = True
-    dummy_video_app = DummyVideoApp(image_queue, result_queue, engine_id = 'dummy') # dummy app for image processing
+    dummy_video_app = DummyVideoApp(image_queue, result_queue, engine_id='dummy')  # dummy app for image processing
     dummy_video_app.start()
     dummy_video_app.isDaemon = True
 
@@ -178,9 +194,8 @@ if __name__ == "__main__":
             video_receive_client.terminate()
         if dummy_video_app is not None:
             dummy_video_app.terminate()
-        #if acc_client is not None:
+        # if acc_client is not None:
         #    acc_client.terminate()
-        #if acc_app is not None:
+        # if acc_app is not None:
         #    acc_app.terminate()
         result_pub.terminate()
-
