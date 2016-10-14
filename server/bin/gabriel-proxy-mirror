@@ -77,11 +77,6 @@ def object_detection():
             confidence = float(response[0][2])
             results.append({'feature': object, 'confidence': confidence, 'area': area})
 
-    results.append({
-        'feature': "button",
-        'confidence': 3.3,
-        'area': [20, 30, 300, 500]
-    })
     return json.dumps(results)
 
 
