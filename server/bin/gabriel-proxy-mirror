@@ -62,9 +62,9 @@ def process_command_line(argv):
             parser.error("Need address and port. Ex) 10.0.0.1:8081")
     return settings, args
 
+def object_detection(image):
+    objects = {'aed' : '49497'}
 
-def object_detection():
-    objects = {'aed': '52053'}
     results = []
     for object, port in objects.iteritems():
         files = {'picture': open('temp.jpg', 'rb')}
