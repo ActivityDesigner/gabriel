@@ -46,7 +46,6 @@ ANDROID_CLIENT = True
 
 # AED project
 MAX_PIC_NUM = 100
-CURRENT_AED_STATE = 0
 PIC_QUEUE = collections.deque(maxlen = MAX_PIC_NUM)
 
 # TPOD Parameters
@@ -55,7 +54,13 @@ TPOD_RESULT = False
 TPOD_SCORE_THRESHOLD = 0.98
 TPOD_AREA = None
 
-START = False
+# AED STATE
+AED_START = 0
+AED_ON = 1
+AED_PULGIN = 2
+AED_SHOCK = 3
+CURRENT_AED_STATE = AED_START
+
 
 def process_command_line(argv):
     VERSION = 'gabriel proxy : %s' % gabriel.Const.VERSION
@@ -106,7 +111,6 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
         return struct.pack("!{}s{}s".format(len(byte_array), len(extra_bytes)), byte_array, extra_bytes)
 
     def handle(self, header, data):
-        global START
 
         # PERFORM Cognitive Assistance Processing
         LOG.info("processing: ")
@@ -155,7 +159,6 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 # save picture to buffer
                 PIC_QUEUE.append(jpeg_img)
                 TPOD_QUEUE.append(bgr_img)
-                START = True
 
                 print '[MAIN_THREAD]: picture queue size   ' + str(len(PIC_QUEUE))
 
@@ -195,7 +198,7 @@ class AedStateCheck(threading.Thread):
         global CURRENT_AED_STATE
         # define your global vars here..
 
-        while (not self.stop.wait(0.02)):
+        while (not self.stop.wait(0.020)):
             try:
                 crt_pic = PIC_QUEUE.popleft()
 
@@ -232,7 +235,7 @@ class TpodCheck(threading.Thread):
         global TPOD_AREA
         # define your global vars here..
 
-        while (not self.stop.wait(0.02)):
+        while (not self.stop.wait(0.01)):
             try:
 
                 crt_pic = TPOD_QUEUE.popleft()
