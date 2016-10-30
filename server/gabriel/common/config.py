@@ -98,7 +98,7 @@ class Const(object):
 
     ## TODO
     MAX_FRAME_SIZE = 1
-    APP_LEVEL_TOKEN_SIZE = 1
+    APP_LEVEL_TOKEN_SIZE = 100
     TOKEN_INJECTION_SIZE = 10
 
     ## min allowed time between two identical messages

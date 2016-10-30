@@ -21,18 +21,21 @@
 
 import multiprocessing
 import Queue
+import collections
 from optparse import OptionParser
 import os
 import pprint
 import struct
 import sys
 import time
+import threading
 import pdb
 
 if os.path.isdir("../gabriel"):
     sys.path.insert(0, "..")
 import gabriel
 import gabriel.proxy
+from AEDfunction import Integer
 import json
 import cv2
 import numpy as np
@@ -42,6 +45,18 @@ import requests
 LOG = gabriel.logging.getLogger(__name__)
 ANDROID_CLIENT = True
 
+# AED project
+MAX_PIC_NUM = 100
+CURRENT_AED_STATE = 0
+PIC_QUEUE = collections.deque(maxlen = MAX_PIC_NUM)
+
+# TPOD Parameters
+TPOD_QUEUE = collections.deque(maxlen = 2)
+TPOD_RESULT = False
+TPOD_SCORE_THRESHOLD = 0.98
+TPOD_AREA = None
+
+START = False
 
 def process_command_line(argv):
     VERSION = 'gabriel proxy : %s' % gabriel.Const.VERSION
@@ -62,14 +77,20 @@ def process_command_line(argv):
             parser.error("Need address and port. Ex) 10.0.0.1:8081")
     return settings, args
 
-def object_detection(image):
+
+
+def object_detection():
+    '''
+    Deprecated API: Used only for debugging
+    :return: json format of tpod aed detection result
+    '''
     objects = {'aed' : '49497'}
 
     results = []
     for object, port in objects.iteritems():
         files = {'picture': open('temp.jpg', 'rb')}
         r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
-
+        print r
         response = eval(r.content)
         if len(response) > 0:
             os.remove("temp.jpg")
@@ -80,11 +101,14 @@ def object_detection(image):
     return json.dumps(results)
 
 
+
 class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
     def add_to_byte_array(self, byte_array, extra_bytes):
         return struct.pack("!{}s{}s".format(len(byte_array), len(extra_bytes)), byte_array, extra_bytes)
 
     def handle(self, header, data):
+        global START
+
         # PERFORM Cognitive Assistance Processing
         LOG.info("processing: ")
         LOG.info("%s\n" % header)
@@ -92,7 +116,6 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
         bgr_img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         mirror_img = cv2.flip(bgr_img, 1)
         _, jpeg_img = cv2.imencode('.jpg', mirror_img)
-        cv2.imwrite("temp.jpg", bgr_img)
 
         if ANDROID_CLIENT:
             # old version return
@@ -119,6 +142,7 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 offset = len(rtn_data)
                 _, ori_img = cv2.imencode('.jpg', bgr_img)
                 animation_data = [jpeg_img.tostring(), ori_img.tostring()]
+
                 # animation bytes format:
                 # first integer: number of frames
                 # for each frame: size of the frame + data
@@ -129,22 +153,122 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 rtn_data = self.add_to_byte_array(rtn_data, animation_bytes)
                 header[gabriel.Protocol_result.JSON_KEY_IMAGES_ANIMATION] = (offset, len(animation_bytes))
 
-                # speech data
+                # save picture to buffer
+                PIC_QUEUE.append(jpeg_img)
+                TPOD_QUEUE.append(bgr_img)
+                START = True
+
+                print '[MAIN_THREAD]: picture queue size   ' + str(len(PIC_QUEUE))
+
+                # return state
+                # can add more field to aed_state dict when returned
+                aed_state = str({'aed_state': CURRENT_AED_STATE, 'tpod_state': TPOD_RESULT})
+                offset = len(rtn_data)
+                rtn_data = self.add_to_byte_array(rtn_data, aed_state)
+                header[gabriel.Protocol_result.JSON_KEY_AEDSTATE] = (offset, len(aed_state))
+
+
+                # add corresponding speech data
                 offset = len(rtn_data)
                 speech = "mirror"
                 rtn_data = self.add_to_byte_array(rtn_data, speech)
                 header[gabriel.Protocol_result.JSON_KEY_SPEECH] = (offset, len(speech))
-
-                # object detection
-                features = object_detection()
-                offset = len(rtn_data)
-                rtn_data = self.add_to_byte_array(rtn_data, features)
-                header[gabriel.Protocol_result.JSON_KEY_FEATURES] = (offset, len(features))
                 return rtn_data
 
         else:
             # python client can only handle image data
             return jpeg_img.tostring()
+
+
+class AedStateCheck(threading.Thread):
+    '''
+    The thread that does AED state check using opencv processing.
+    It takes input data from @BUFFER and puts output data into CURRENT_AED_STATE.
+    TPOD neural network result is in TPOD_RESULT
+    '''
+    def __init__(self):
+        self.stop = threading.Event()
+        threading.Thread.__init__(self, target = self.run)
+
+
+    def run(self):
+        global PIC_QUEUE
+        global CURRENT_AED_STATE
+        # define your global vars here..
+
+        while (not self.stop.wait(0.20)):
+            try:
+                crt_pic = PIC_QUEUE.popleft()
+
+                # define opencv operation here to modify CURRENT_AED_STATE
+                if TPOD_RESULT is True:
+                    CURRENT_AED_STATE = 0
+                print '[AED STATE]: AED OPENCV PROCESSED'
+
+            except IndexError as e:
+                # stop for 10 ms if the queue is empty
+                print '[AED STATE]: NO picture in PIC_QUEUE ' + str(len(PIC_QUEUE))
+                self.stop.wait(0.1)
+                continue
+
+    def terminate(self):
+        self.stop.set()
+
+
+class TpodCheck(threading.Thread):
+    '''
+    The thread that does AED state check using opencv processing.
+    It takes input data from @BUFFER and puts output data into CURRENT_AED_STATE.
+    TPOD neural network result is in TPOD_RESULT
+    '''
+
+    def __init__(self):
+        self.stop = threading.Event()
+        self.objects = {'aed': '49497'}
+        threading.Thread.__init__(self, target=self.run)
+
+    def run(self):
+        global TPOD_QUEUE
+        global TPOD_RESULT
+        global TPOD_AREA
+        # define your global vars here..
+
+        while (not self.stop.wait(0.1)):
+            try:
+                print "[TPOD_CHECK_THREAD]: send request to TPOD" + str(TPOD_RESULT)
+                crt_pic = TPOD_QUEUE.popleft()
+                results = self.object_detection_topd(crt_pic)
+                if results is not None and results['confidence'] >= TPOD_SCORE_THRESHOLD:
+                    TPOD_RESULT = True
+                    TPOD_AREA = results['area']
+                else:
+                    TPOD_RESULT = False
+
+
+            except IndexError as e:
+                # stop for 10 ms if the queue is empty
+                print "[TPOD_CHECK_THREAD]: NO PICTURES in TPOD QUEUE " + str(len(PIC_QUEUE))
+                self.stop.wait(0.1)
+                continue
+
+
+    def object_detection_topd(self, pic):
+        cv2.imwrite("temp.jpg", pic)
+        self.stop.wait(0.1)
+        for object, port in self.objects.iteritems():
+            files = {'picture': open('temp.jpg', 'rb')}
+            r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
+            response = eval(r.content)
+            print r
+            if r.status_code != 500 and len(response) > 0:
+                os.remove("temp.jpg")
+                area = response[0][1]
+                confidence = float(response[0][2])
+                return {'feature': object, 'confidence': confidence, 'area': area}
+        return None
+
+    def terminate(self):
+        self.stop.set()
 
 
 if __name__ == "__main__":
@@ -168,14 +292,28 @@ if __name__ == "__main__":
     video_receive_client = gabriel.proxy.SensorReceiveClient((video_ip, video_port), image_queue)
     video_receive_client.start()
     video_receive_client.isDaemon = True
+
     dummy_video_app = DummyVideoApp(image_queue, result_queue, engine_id='dummy')  # dummy app for image processing
     dummy_video_app.start()
     dummy_video_app.isDaemon = True
-
     # result publish
     result_pub = gabriel.proxy.ResultPublishClient((ucomm_ip, ucomm_port), result_queue)
     result_pub.start()
     result_pub.isDaemon = True
+
+    tpod_check = TpodCheck()
+    tpod_check.start()
+    tpod_check.isDaemon = True
+    LOG.info("TPOD_CHECK_THREAD: START")
+    print "TPOD_CHECK_THREAD: START"
+
+
+    aed_state_check = AedStateCheck()
+    aed_state_check.start()
+    aed_state_check.isDaemon = True
+    LOG.info("AED_STATE_THREAD: START")
+    print "AED_STATE_THREAD: START"
+
 
     try:
         while True:
@@ -189,6 +327,10 @@ if __name__ == "__main__":
             video_receive_client.terminate()
         if dummy_video_app is not None:
             dummy_video_app.terminate()
+        if tpod_check is not None:
+            tpod_check.terminate()
+        if aed_state_check is not None:
+            aed_state_check.terminate()
         # if acc_client is not None:
         #    acc_client.terminate()
         # if acc_app is not None:

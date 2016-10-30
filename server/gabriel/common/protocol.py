@@ -53,4 +53,5 @@ class Protocol_result(object):
     JSON_KEY_IMAGES_ANIMATION = "animation"
     JSON_KEY_VIDEO = "video"
     JSON_KEY_FEATURES = "detection"
+    JSON_KEY_AEDSTATE = "aed_state"
 
