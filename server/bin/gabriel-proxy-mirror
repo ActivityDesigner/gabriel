@@ -40,6 +40,12 @@ import cv2
 import numpy as np
 import base64
 import requests
+import logic.util as util
+import logic.stage_pre_main as stage_pre_main
+import logic.stage_1_main as stage_1_main
+import logic.stage_2_main as stage_2_main
+import logic.stage_3_main as stage_3_main
+
 
 LOG = gabriel.logging.getLogger(__name__)
 ANDROID_CLIENT = True
@@ -55,11 +61,12 @@ TPOD_SCORE_THRESHOLD = 0.98
 TPOD_AREA = None
 
 # AED STATE
+AED_PREPARE = -1
 AED_START = 0
 AED_ON = 1
 AED_PULGIN = 2
 AED_SHOCK = 3
-CURRENT_AED_STATE = AED_START
+CURRENT_AED_STATE = AED_PREPARE
 
 
 def process_command_line(argv):
@@ -182,6 +189,10 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
             return jpeg_img.tostring()
 
 
+frame_counter = 0
+frame_sampling = 1
+
+
 class AedStateCheck(threading.Thread):
     '''
     The thread that does AED state check using opencv processing.
@@ -196,22 +207,62 @@ class AedStateCheck(threading.Thread):
     def run(self):
         global PIC_QUEUE
         global CURRENT_AED_STATE
+        global frame_counter
         # define your global vars here..
 
-        while (not self.stop.wait(0.020)):
+        while not self.stop.wait(0.020):
+
             try:
                 crt_pic = PIC_QUEUE.popleft()
 
-                # define opencv operation here to modify CURRENT_AED_STATE
-                if TPOD_RESULT is True:
-                    CURRENT_AED_STATE = 0
-                print '[AED STATE]: AED OPENCV PROCESSED'
+                if frame_counter > 3:
+
+                        # define opencv operation here to modify CURRENT_AED_STATE
+                        if CURRENT_AED_STATE == AED_PREPARE:
+                            # do preposition
+                            is_prepared = stage_pre_main.prepare(last_pic, crt_pic)
+                            if is_prepared:
+                                print "find the aed and well prepared, now turn to stage 1 detection"
+                                CURRENT_AED_STATE = AED_START
+                                detected_x, detected_y = stage_pre_main.retrieve_pos()
+                                size_org = stage_pre_main.retrieve_size()
+                                stage_1_main.set_params(detected_x, detected_y, size_org)
+
+                        elif CURRENT_AED_STATE == AED_START:
+                            # do start stage detection
+                            is_success = stage_1_main.run(last_pic, crt_pic)
+                            if is_success:
+                                print "detect the aed turn on, now turn to stage 2 detection"
+                                CURRENT_AED_STATE = AED_ON
+                                detected_x, detected_y, size_org = stage_1_main.retrieve_params()
+                                stage_2_main.set_params(detected_x, detected_y, size_org)
+
+                        elif CURRENT_AED_STATE == AED_ON:
+                            is_success = stage_2_main.run(last_pic, crt_pic)
+                            if is_success:
+                                print "detect the yellow plug, now turn to stage 3 detection"
+                                CURRENT_AED_STATE = AED_PULGIN
+                                detected_x, detected_y, size_org = stage_2_main.retrieve_params()
+                                stage_3_main.set_params(detected_x, detected_y)
+
+                        elif CURRENT_AED_STATE == AED_PULGIN:
+                            print "detect the flash button"
+                            is_success = stage_3_main.run(last_pic, crt_pic)
+                            if is_success:
+                                print "detect the flash button, now turn to end"
+                                CURRENT_AED_STATE = AED_SHOCK
+
+                        elif CURRENT_AED_STATE == AED_SHOCK:
+                            print "CONST_STAGE_SHOCK_DELIVER"
+                last_pic = crt_pic
+                frame_counter = frame_counter + 1
 
             except IndexError as e:
                 # stop for 10 ms if the queue is empty
                 print '[AED STATE]: NO picture in PIC_QUEUE ' + str(len(PIC_QUEUE))
                 self.stop.wait(0.1)
                 continue
+
 
     def terminate(self):
         self.stop.set()
