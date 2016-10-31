@@ -27,7 +27,7 @@ def prepare(last_valid_frame,frame):
     detected_org_x = 500
     detected_org_y = 400
 
-    util.show_two_image(last_valid_frame,frame)
+    #util.show_two_image(last_valid_frame,frame)
     is_aed_detected = aed_detector.aed_detect(last_valid_frame, frame)
     # now find the orange button and other important items precisely
     if is_aed_detected:

@@ -38,7 +38,7 @@ def run(last_valid_frame,frame):
     global no_flashing_cnt
     global is_flashing
 
-    is_detected = flash_detetor.flash_detection(last_valid_frame, frame, detected_x, detected_y, 2)
+    is_detected = flash_detetor.flash_detection(last_valid_frame, frame, detected_x, detected_y)
     if is_flashing:
         # to detect when flash no longer flash in the recent 10 frames
         if is_detected:

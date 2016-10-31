@@ -125,7 +125,7 @@ def detect_hand(image1,image2):
     # cnts1 and cnts2 contain the contour result
     hand_candidate_1 = []
     hand_candidate_2 = []
-    util.show_image("hand",res2,640,320)
+    #util.show_image("hand",res2,640,320)
     x2 = 0
     y2 = 0
     for cnt in cnts1:
@@ -184,8 +184,8 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y):
     #util.show_two_image(mask1,mask2)
     # perform the actual resizing of the image and show it
     #util.show_two_image(black1,black2)
-    util.show_image("window1",image1,640,320)
-    util.show_image("window2",black1,640,320)
+    #util.show_image("window1",image1,640,320)
+    #util.show_image("window2",black1,640,320)
 
     for cnt in cnts1:
         area0 = cv2.contourArea(cnt)
@@ -226,6 +226,6 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y):
         global confidence_counter
         confidence_counter += 1
     if confidence_counter > 3:
-        util.show_two_image(black1,black2)
+        #util.show_two_image(black1,black2)
         return 1,x2,y2
     return 0,x2,y2
