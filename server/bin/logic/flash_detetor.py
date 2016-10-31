@@ -36,6 +36,7 @@ def reset():
 
 def flash_detection(img1, img2, orange_x, orange_y, show_type = 0):
 
+    print "flash detection start"
     global org_pos_x;
     global org_pos_y;
     global confidence_counter;
@@ -51,26 +52,31 @@ def flash_detection(img1, img2, orange_x, orange_y, show_type = 0):
     hsv1 = cv2.cvtColor(thresh1, cv2.COLOR_BGR2GRAY)
     hsv2 = cv2.cvtColor(thresh2, cv2.COLOR_BGR2GRAY)
 
-    cnts1, hierarchy1 = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    cnts2, hierarchy2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
+    _, cnts1, hierarchy1 = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    _, cnts2, hierarchy2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    #cnts1 = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    #cnts2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     if show_type == 1:
         util.show_two_image(hsv1,hsv2)
     elif show_type == 2:
         util.show_image("w1",hsv1,640,320)
         util.show_image("w2",img2,640,320)
 
+    cv2.imwrite("w1.jpg", hsv1)
+    cv2.imwrite("w2.jpg", img1)
+
     org_btn_candidate_1 = []
     org_btn_candidate_2 = []
 
     for cnt in cnts1:
+
         area0 = cv2.contourArea(cnt)
         #if area0 > 10:
         #    print area0
         cnt_len = cv2.arcLength(cnt, True)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
         if area0 > 100:
-            print area0
+            print "area" + str(area0)
         if feature_detetor.area_estimate(area0,1):
             x, y, w, h = cv2.boundingRect(cnt)
             print w,h,x,y
@@ -83,7 +89,7 @@ def flash_detection(img1, img2, orange_x, orange_y, show_type = 0):
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
         if area0 > 100:
-            print area0
+            print "area"+str(area0)
         if feature_detetor.area_estimate(area0, 1):
             x, y, w, h = cv2.boundingRect(cnt)
             print w, h,x,y

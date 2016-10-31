@@ -46,16 +46,15 @@ import logic.stage_1_main as stage_1_main
 import logic.stage_2_main as stage_2_main
 import logic.stage_3_main as stage_3_main
 
-
 LOG = gabriel.logging.getLogger(__name__)
 ANDROID_CLIENT = True
 
 # AED project
 MAX_PIC_NUM = 100
-PIC_QUEUE = collections.deque(maxlen = MAX_PIC_NUM)
+PIC_QUEUE = collections.deque(maxlen=MAX_PIC_NUM)
 
 # TPOD Parameters
-TPOD_QUEUE = collections.deque(maxlen = 2)
+TPOD_QUEUE = collections.deque(maxlen=2)
 TPOD_RESULT = False
 TPOD_SCORE_THRESHOLD = 0.98
 TPOD_AREA = None
@@ -89,13 +88,12 @@ def process_command_line(argv):
     return settings, args
 
 
-
 def object_detection():
     '''
     Deprecated API: Used only for debugging
     :return: json format of tpod aed detection result
     '''
-    objects = {'aed' : '49497'}
+    objects = {'aed': '49497'}
 
     results = []
     for object, port in objects.iteritems():
@@ -112,7 +110,6 @@ def object_detection():
     return json.dumps(results)
 
 
-
 class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
     def add_to_byte_array(self, byte_array, extra_bytes):
         return struct.pack("!{}s{}s".format(len(byte_array), len(extra_bytes)), byte_array, extra_bytes)
@@ -120,8 +117,8 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
     def handle(self, header, data):
 
         # PERFORM Cognitive Assistance Processing
-        LOG.info("processing: ")
-        LOG.info("%s\n" % header)
+        # LOG.info("processing: ")
+        # LOG.info("%s\n" % header)
         np_data = np.fromstring(data, dtype=np.uint8)
         bgr_img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         mirror_img = cv2.flip(bgr_img, 1)
@@ -147,24 +144,8 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 # header has (offset, size) for each data type
                 header[gabriel.Protocol_result.JSON_KEY_IMAGE] = (0, len(rtn_data))
 
-                # animation data
-                # animation is two images: before mirror and after mirror
-                offset = len(rtn_data)
-                _, ori_img = cv2.imencode('.jpg', bgr_img)
-                animation_data = [jpeg_img.tostring(), ori_img.tostring()]
-
-                # animation bytes format:
-                # first integer: number of frames
-                # for each frame: size of the frame + data
-                animation_bytes = struct.pack("!I", len(animation_data))
-                for frame in animation_data:
-                    frame_bytes = struct.pack("!I{}s".format(len(frame)), len(frame), frame)
-                    animation_bytes = self.add_to_byte_array(animation_bytes, frame_bytes)
-                rtn_data = self.add_to_byte_array(rtn_data, animation_bytes)
-                header[gabriel.Protocol_result.JSON_KEY_IMAGES_ANIMATION] = (offset, len(animation_bytes))
-
                 # save picture to buffer
-                PIC_QUEUE.append(jpeg_img)
+                PIC_QUEUE.append(bgr_img)
                 TPOD_QUEUE.append(bgr_img)
 
                 print '[MAIN_THREAD]: picture queue size   ' + str(len(PIC_QUEUE))
@@ -175,7 +156,6 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 offset = len(rtn_data)
                 rtn_data = self.add_to_byte_array(rtn_data, aed_state)
                 header[gabriel.Protocol_result.JSON_KEY_AEDSTATE] = (offset, len(aed_state))
-
 
                 # add corresponding speech data
                 offset = len(rtn_data)
@@ -199,72 +179,85 @@ class AedStateCheck(threading.Thread):
     It takes input data from @PIC_QUEUE and puts output data into CURRENT_AED_STATE.
     TPOD neural network result is in TPOD_RESULT
     '''
+
     def __init__(self):
         self.stop = threading.Event()
-        threading.Thread.__init__(self, target = self.run)
-
+        threading.Thread.__init__(self, target=self.run)
 
     def run(self):
         global PIC_QUEUE
         global CURRENT_AED_STATE
         global frame_counter
         # define your global vars here..
+        last_pic = None
 
-        while not self.stop.wait(0.020):
+        while not self.stop.wait(0.001):
 
             try:
                 crt_pic = PIC_QUEUE.popleft()
+                # print "[AED THREAD] current frame:" + str(frame_counter)
 
-                if frame_counter > 3:
+                if frame_counter > 10:
+                    #print "TEST ENTER " + str(frame_counter) " curren state " + CURRENT_AED_STATE
+                    # define opencv operation here to modify CURRENT_AED_STATE
+                    # util.show_two_image(crt_pic,last_pic)
+                    cv2.imwrite("test1.jpg", crt_pic)
+                    cv2.imwrite("test2.jpg", last_pic)
+                    last_pic = cv2.imread("test1.jpg")
+                    crt_pic = cv2.imread("test1.jpg")
+                    # cv2.imshow("Frame1", crt_pic)
+                    # cv2.imshow("Frame2", last_pic)
+                    # cv2.waitKey(0)
+                    print "state"+str(CURRENT_AED_STATE)
+                    if CURRENT_AED_STATE == AED_PREPARE:
+                        # do preposition
+                        is_prepared = stage_pre_main.prepare(last_pic, crt_pic)
+                        if is_prepared:
+                            print "find the aed and well prepared, now turn to stage 1 detection"
+                            CURRENT_AED_STATE = AED_START
+                            detected_x, detected_y = stage_pre_main.retrieve_pos()
+                            size_org = stage_pre_main.retrieve_size()
+                            stage_1_main.set_params(detected_x, detected_y, size_org)
 
-                        # define opencv operation here to modify CURRENT_AED_STATE
-                        if CURRENT_AED_STATE == AED_PREPARE:
-                            # do preposition
-                            is_prepared = stage_pre_main.prepare(last_pic, crt_pic)
-                            if is_prepared:
-                                print "find the aed and well prepared, now turn to stage 1 detection"
-                                CURRENT_AED_STATE = AED_START
-                                detected_x, detected_y = stage_pre_main.retrieve_pos()
-                                size_org = stage_pre_main.retrieve_size()
-                                stage_1_main.set_params(detected_x, detected_y, size_org)
+                    elif CURRENT_AED_STATE == AED_START:
+                        # do start stage detection
+                        is_success = stage_1_main.run(last_pic, crt_pic)
+                        if is_success:
+                            print "detect the aed turn on, now turn to stage 2 detection"
+                            CURRENT_AED_STATE = AED_ON
+                            detected_x, detected_y, size_org = stage_1_main.retrieve_params()
+                            stage_2_main.set_params(detected_x, detected_y, size_org)
 
-                        elif CURRENT_AED_STATE == AED_START:
-                            # do start stage detection
-                            is_success = stage_1_main.run(last_pic, crt_pic)
-                            if is_success:
-                                print "detect the aed turn on, now turn to stage 2 detection"
-                                CURRENT_AED_STATE = AED_ON
-                                detected_x, detected_y, size_org = stage_1_main.retrieve_params()
-                                stage_2_main.set_params(detected_x, detected_y, size_org)
+                    elif CURRENT_AED_STATE == AED_ON:
+                        is_success = stage_2_main.run(last_pic, crt_pic)
+                        if is_success:
+                            print "detect the yellow plug, now turn to stage 3 detection"
+                            CURRENT_AED_STATE = AED_PULGIN
+                            detected_x, detected_y, size_org = stage_2_main.retrieve_params()
+                            stage_3_main.set_params(detected_x, detected_y)
 
-                        elif CURRENT_AED_STATE == AED_ON:
-                            is_success = stage_2_main.run(last_pic, crt_pic)
-                            if is_success:
-                                print "detect the yellow plug, now turn to stage 3 detection"
-                                CURRENT_AED_STATE = AED_PULGIN
-                                detected_x, detected_y, size_org = stage_2_main.retrieve_params()
-                                stage_3_main.set_params(detected_x, detected_y)
+                    elif CURRENT_AED_STATE == AED_PULGIN:
+                        print "detect the flash button"
+                        is_success = stage_3_main.run(last_pic, crt_pic)
+                        if is_success:
+                            print "detect the flash button, now turn to end"
+                            CURRENT_AED_STATE = AED_SHOCK
 
-                        elif CURRENT_AED_STATE == AED_PULGIN:
-                            print "detect the flash button"
-                            is_success = stage_3_main.run(last_pic, crt_pic)
-                            if is_success:
-                                print "detect the flash button, now turn to end"
-                                CURRENT_AED_STATE = AED_SHOCK
+                    elif CURRENT_AED_STATE == AED_SHOCK:
+                        print "CONST_STAGE_SHOCK_DELIVER"
 
-                        elif CURRENT_AED_STATE == AED_SHOCK:
-                            print "CONST_STAGE_SHOCK_DELIVER"
-                last_pic = crt_pic
                 frame_counter = frame_counter + 1
+                last_pic = crt_pic
 
             except IndexError as e:
                 # stop for 10 ms if the queue is empty
-                print '[AED STATE]: NO picture in PIC_QUEUE ' + str(len(PIC_QUEUE))
+                # print "TEST EXCEPTION " + str(frame_counter) + str(e)
                 self.stop.wait(0.1)
                 continue
-
+        print "TEST EXIT WHILE " + str(frame_counter)
 
     def terminate(self):
+        print "TEST TERMINATE " + str(frame_counter)
         self.stop.set()
 
 
@@ -300,10 +293,9 @@ class TpodCheck(threading.Thread):
 
             except IndexError as e:
                 # stop for 10 ms if the queue is empty
-                print "[TPOD_CHECK_THREAD]: NO PICTURES in TPOD QUEUE " + str(len(PIC_QUEUE))
+                # print "[TPOD_CHECK_THREAD]: NO PICTURES in TPOD QUEUE " + str(len(PIC_QUEUE))
                 self.stop.wait(0.1)
                 continue
-
 
     def object_detection_topd(self, pic):
         cv2.imwrite("temp.jpg", pic)
@@ -312,7 +304,6 @@ class TpodCheck(threading.Thread):
             files = {'picture': open('temp.jpg', 'rb')}
             r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
             response = eval(r.content)
-            print r
             if r.status_code != 500 and len(response) > 0:
                 os.remove("temp.jpg")
                 area = response[0][1]
@@ -331,8 +322,8 @@ if __name__ == "__main__":
     settings, args = process_command_line(sys.argv[1:])
     ip_addr, port = gabriel.network.get_registry_server_address(settings.address)
     service_list = gabriel.network.get_service_list(ip_addr, port)
-    LOG.info("Gabriel Server :")
-    LOG.info(pprint.pformat(service_list))
+    # LOG.info("Gabriel Server :")
+    # LOG.info(pprint.pformat(service_list))
 
     video_ip = service_list.get(gabriel.ServiceMeta.VIDEO_TCP_STREAMING_IP)
     video_port = service_list.get(gabriel.ServiceMeta.VIDEO_TCP_STREAMING_PORT)
@@ -350,26 +341,24 @@ if __name__ == "__main__":
     dummy_video_app.start()
     dummy_video_app.isDaemon = True
 
-
     # result publish
     result_pub = gabriel.proxy.ResultPublishClient((ucomm_ip, ucomm_port), result_queue)
     result_pub.start()
     result_pub.isDaemon = True
 
-    #tpod thread
+    # tpod thread
     tpod_check = TpodCheck()
     tpod_check.start()
     tpod_check.isDaemon = True
-    LOG.info("TPOD_CHECK_THREAD: START")
+    # LOG.info("TPOD_CHECK_THREAD: START")
     print "TPOD_CHECK_THREAD: START"
 
     # aed state thread
     aed_state_check = AedStateCheck()
     aed_state_check.start()
     aed_state_check.isDaemon = True
-    LOG.info("AED_STATE_THREAD: START")
+    # LOG.info("AED_STATE_THREAD: START")
     print "AED_STATE_THREAD: START"
-
 
     try:
         while True:

@@ -25,7 +25,7 @@ def prepare(last_valid_frame,frame):
     global detected_org_y
 
     detected_org_x = 500
-    detected_org_y = 400
+    detected_org_y = 500
 
     #util.show_two_image(last_valid_frame,frame)
     is_aed_detected = aed_detector.aed_detect(last_valid_frame, frame)

@@ -40,15 +40,16 @@ def run(last_valid_frame,frame):
 
     global is_hand_appearing;
     global hand_disappear_cnt;
+    is_hand_appearing = True
 
-    if abs(hand_x - start_btn_x) < 200 and abs(hand_y - start_btn_y) < 200:
-        # the hand is right above the btn
-        is_hand_appearing = True
-        hand_disappear_cnt = 0
-    else:
-        hand_disappear_cnt += 1
-        if hand_disappear_cnt > 5:
-            is_hand_appearing = False
+    # if abs(hand_x - start_btn_x) < 200 and abs(hand_y - start_btn_y) < 200:
+    #     # the hand is right above the btn
+    #     is_hand_appearing = True
+    #     hand_disappear_cnt = 0
+    # else:
+    #     hand_disappear_cnt += 1
+    #     if hand_disappear_cnt > 5:
+    #         is_hand_appearing = False
 
     is_flash_detected = False
 
