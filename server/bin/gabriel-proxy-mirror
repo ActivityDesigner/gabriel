@@ -40,11 +40,8 @@ import cv2
 import numpy as np
 import base64
 import requests
-import logic.util as util
-import logic.stage_pre_main as stage_pre_main
-import logic.stage_1_main as stage_1_main
-import logic.stage_2_main as stage_2_main
-import logic.stage_3_main as stage_3_main
+import mpc.tpod_state_check as tpod_state_check
+import mpc.aed_state_check as aed_state_check
 
 LOG = gabriel.logging.getLogger(__name__)
 ANDROID_CLIENT = True
@@ -55,17 +52,11 @@ PIC_QUEUE = collections.deque(maxlen=MAX_PIC_NUM)
 
 # TPOD Parameters
 TPOD_QUEUE = collections.deque(maxlen=2)
-TPOD_RESULT = False
-TPOD_SCORE_THRESHOLD = 0.98
-TPOD_AREA = None
 
-# AED STATE
-AED_PREPARE = -1
-AED_START = 0
-AED_ON = 1
-AED_PULGIN = 2
-AED_SHOCK = 3
-CURRENT_AED_STATE = AED_PREPARE
+AEDStateCheck = None
+TPODStateCheck = None
+
+LOG_ENABLE = False
 
 
 def process_command_line(argv):
@@ -152,7 +143,8 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
 
                 # return state
                 # can add more field to aed_state dict when returned
-                aed_state = str({'aed_state': CURRENT_AED_STATE, 'tpod_state': TPOD_RESULT})
+                aed_state = str(
+                    {'aed_state': AEDStateCheck.CURRENT_AED_STATE, 'tpod_state': TPODStateCheck.get_result()})
                 offset = len(rtn_data)
                 rtn_data = self.add_to_byte_array(rtn_data, aed_state)
                 header[gabriel.Protocol_result.JSON_KEY_AEDSTATE] = (offset, len(aed_state))
@@ -185,76 +177,19 @@ class AedStateCheck(threading.Thread):
         threading.Thread.__init__(self, target=self.run)
 
     def run(self):
-        global PIC_QUEUE
-        global CURRENT_AED_STATE
-        global frame_counter
         # define your global vars here..
-        last_pic = None
 
         while not self.stop.wait(0.001):
-
             try:
                 crt_pic = PIC_QUEUE.popleft()
+                AEDStateCheck.logic(crt_pic)
                 # print "[AED THREAD] current frame:" + str(frame_counter)
-
-                if frame_counter > 10:
-                    #print "TEST ENTER " + str(frame_counter) " curren state " + CURRENT_AED_STATE
-                    # define opencv operation here to modify CURRENT_AED_STATE
-                    # util.show_two_image(crt_pic,last_pic)
-                    cv2.imwrite("test1.jpg", crt_pic)
-                    cv2.imwrite("test2.jpg", last_pic)
-                    last_pic = cv2.imread("test1.jpg")
-                    crt_pic = cv2.imread("test1.jpg")
-                    # cv2.imshow("Frame1", crt_pic)
-                    # cv2.imshow("Frame2", last_pic)
-                    # cv2.waitKey(0)
-                    print "state"+str(CURRENT_AED_STATE)
-                    if CURRENT_AED_STATE == AED_PREPARE:
-                        # do preposition
-                        is_prepared = stage_pre_main.prepare(last_pic, crt_pic)
-                        if is_prepared:
-                            print "find the aed and well prepared, now turn to stage 1 detection"
-                            CURRENT_AED_STATE = AED_START
-                            detected_x, detected_y = stage_pre_main.retrieve_pos()
-                            size_org = stage_pre_main.retrieve_size()
-                            stage_1_main.set_params(detected_x, detected_y, size_org)
-
-                    elif CURRENT_AED_STATE == AED_START:
-                        # do start stage detection
-                        is_success = stage_1_main.run(last_pic, crt_pic)
-                        if is_success:
-                            print "detect the aed turn on, now turn to stage 2 detection"
-                            CURRENT_AED_STATE = AED_ON
-                            detected_x, detected_y, size_org = stage_1_main.retrieve_params()
-                            stage_2_main.set_params(detected_x, detected_y, size_org)
-
-                    elif CURRENT_AED_STATE == AED_ON:
-                        is_success = stage_2_main.run(last_pic, crt_pic)
-                        if is_success:
-                            print "detect the yellow plug, now turn to stage 3 detection"
-                            CURRENT_AED_STATE = AED_PULGIN
-                            detected_x, detected_y, size_org = stage_2_main.retrieve_params()
-                            stage_3_main.set_params(detected_x, detected_y)
-
-                    elif CURRENT_AED_STATE == AED_PULGIN:
-                        print "detect the flash button"
-                        is_success = stage_3_main.run(last_pic, crt_pic)
-                        if is_success:
-                            print "detect the flash button, now turn to end"
-                            CURRENT_AED_STATE = AED_SHOCK
-
-                    elif CURRENT_AED_STATE == AED_SHOCK:
-                        print "CONST_STAGE_SHOCK_DELIVER"
-
-                frame_counter = frame_counter + 1
-                last_pic = crt_pic
 
             except IndexError as e:
                 # stop for 10 ms if the queue is empty
                 # print "TEST EXCEPTION " + str(frame_counter) + str(e)
                 self.stop.wait(0.1)
                 continue
-        print "TEST EXIT WHILE " + str(frame_counter)
 
     def terminate(self):
         print "TEST TERMINATE " + str(frame_counter)
@@ -270,46 +205,20 @@ class TpodCheck(threading.Thread):
 
     def __init__(self):
         self.stop = threading.Event()
-        self.objects = {'aed': '49497'}
+
         threading.Thread.__init__(self, target=self.run)
 
     def run(self):
-        global TPOD_QUEUE
-        global TPOD_RESULT
-        global TPOD_AREA
         # define your global vars here..
-
         while (not self.stop.wait(0.01)):
             try:
-
                 crt_pic = TPOD_QUEUE.popleft()
-                results = self.object_detection_topd(crt_pic)
-                if results is not None and results['confidence'] >= TPOD_SCORE_THRESHOLD:
-                    TPOD_RESULT = True
-                    TPOD_AREA = results['area']
-                else:
-                    TPOD_RESULT = False
-                print "[TPOD_CHECK_THREAD]: send request to TPOD, current state: " + str(TPOD_RESULT)
-
+                TPODStateCheck.logic(crt_pic)
             except IndexError as e:
                 # stop for 10 ms if the queue is empty
                 # print "[TPOD_CHECK_THREAD]: NO PICTURES in TPOD QUEUE " + str(len(PIC_QUEUE))
                 self.stop.wait(0.1)
                 continue
-
-    def object_detection_topd(self, pic):
-        cv2.imwrite("temp.jpg", pic)
-        self.stop.wait(0.1)
-        for object, port in self.objects.iteritems():
-            files = {'picture': open('temp.jpg', 'rb')}
-            r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
-            response = eval(r.content)
-            if r.status_code != 500 and len(response) > 0:
-                os.remove("temp.jpg")
-                area = response[0][1]
-                confidence = float(response[0][2])
-                return {'feature': object, 'confidence': confidence, 'area': area}
-        return None
 
     def terminate(self):
         self.stop.set()
@@ -345,6 +254,10 @@ if __name__ == "__main__":
     result_pub = gabriel.proxy.ResultPublishClient((ucomm_ip, ucomm_port), result_queue)
     result_pub.start()
     result_pub.isDaemon = True
+
+    # classes for AED and TPOD
+    AEDStateCheck = aed_state_check.AEDState()
+    TPODStateCheck = tpod_state_check.TpodState()
 
     # tpod thread
     tpod_check = TpodCheck()

@@ -44,8 +44,11 @@ def get_ip(iface='eth0'):
         ip = struct.unpack('16sH2x4s8x', res)[2]
         return socket.inet_ntoa(ip)
     else:
-        iface = 'eh0'
-        return socket.gethostbyname(socket.gethostname())
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("gmail.com", 80))
+        ip = (s.getsockname()[0])
+        s.close()
+        return ip
 
 
 def get_public_ip():
