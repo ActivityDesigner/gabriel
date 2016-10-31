@@ -17,11 +17,11 @@ import base64
 import requests
 
 TPOD_SCORE_THRESHOLD = 0.98
-
+TPOD_PORT = 48486
 
 class TpodState():
     def __init__(self):
-        self.objects = {'aed': '49497'}
+        self.objects = {'aed': TPOD_PORT}
         self.TPOD_RESULT = False
         self.TPOD_AREA = None
 
