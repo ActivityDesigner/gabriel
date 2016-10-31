@@ -79,27 +79,6 @@ def process_command_line(argv):
     return settings, args
 
 
-def object_detection():
-    '''
-    Deprecated API: Used only for debugging
-    :return: json format of tpod aed detection result
-    '''
-    objects = {'aed': '49497'}
-
-    results = []
-    for object, port in objects.iteritems():
-        files = {'picture': open('temp.jpg', 'rb')}
-        r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
-        print r
-        response = eval(r.content)
-        if len(response) > 0:
-            os.remove("temp.jpg")
-            area = response[0][1]
-            confidence = float(response[0][2])
-            results.append({'feature': object, 'confidence': confidence, 'area': area})
-
-    return json.dumps(results)
-
 
 class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
     def add_to_byte_array(self, byte_array, extra_bytes):
@@ -136,8 +115,8 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 header[gabriel.Protocol_result.JSON_KEY_IMAGE] = (0, len(rtn_data))
 
                 # save picture to buffer
-                PIC_QUEUE.append(bgr_img)
-                TPOD_QUEUE.append(bgr_img)
+                PIC_QUEUE.append(bgr_img.copy())
+                TPOD_QUEUE.append(bgr_img.copy())
 
                 print '[MAIN_THREAD]: picture queue size   ' + str(len(PIC_QUEUE))
 
