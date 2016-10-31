@@ -33,11 +33,19 @@ class AEDState:
         self.CURRENT_AED_STATE = AED_PREPARE
         self.last_pic = None
         self.frame_counter = 0
+        self.debug_image = None
+
+    def has_debug_image(self):
+        return self.debug_image != None
+
+    def get_debug_image(self):
+        return self.debug_image
 
     def logic(self, image):
         # define your global vars here..
         try:
             crt_pic = image
+            self.debug_image = image
             # print "[AED THREAD] current frame:" + str(frame_counter)
             if self.frame_counter > 10:
                 print "state" + str(self.CURRENT_AED_STATE)
