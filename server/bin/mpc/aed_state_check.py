@@ -28,17 +28,33 @@ AED_SHOCK = 3
 
 
 class AEDState:
+    speech_message = {
+        AED_PREPARE: "Please look at AED, begin cognitive assistant soon",
+        AED_START : "Please turn on AED.",
+        AED_ON: "Nice! Now apply pad and plug in",
+        AED_PULGIN: "Congratulations, now wait for further instructions",
+        AED_SHOCK: "Press orange button to deliver shock"
+    }
     def __init__(self):
         # AED STATE
         self.CURRENT_AED_STATE = AED_PREPARE
         self.last_pic = None
         self.frame_counter = 0
+        self.debug_image = None
+
+    def has_debug_image(self):
+        return self.debug_image != None
+
+    def get_debug_image(self):
+        return self.debug_image
+
+    def get_speech_message(self):
+        return self.speech_message[self.CURRENT_AED_STATE]
 
     def logic(self, image):
         # define your global vars here..
         try:
             crt_pic = image
-            print "[AED THREAD] current frame:" + str(self.frame_counter)
             if self.frame_counter > 10:
                 print "state" + str(self.CURRENT_AED_STATE)
                 if self.CURRENT_AED_STATE == AED_PREPARE:

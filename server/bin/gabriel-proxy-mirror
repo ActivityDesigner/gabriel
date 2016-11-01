@@ -56,6 +56,8 @@ TPOD_QUEUE = collections.deque(maxlen=2)
 AEDStateCheck = None
 TPODStateCheck = None
 
+PREVIOUS_STATE = -2
+
 LOG_ENABLE = False
 
 
@@ -85,7 +87,7 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
         return struct.pack("!{}s{}s".format(len(byte_array), len(extra_bytes)), byte_array, extra_bytes)
 
     def handle(self, header, data):
-
+        global PREVIOUS_STATE
         # PERFORM Cognitive Assistance Processing
         # LOG.info("processing: ")
         # LOG.info("%s\n" % header)
@@ -128,11 +130,14 @@ class DummyVideoApp(gabriel.proxy.CognitiveProcessThread):
                 rtn_data = self.add_to_byte_array(rtn_data, aed_state)
                 header[gabriel.Protocol_result.JSON_KEY_AEDSTATE] = (offset, len(aed_state))
 
-                # add corresponding speech data
-                offset = len(rtn_data)
-                speech = "mirror"
-                rtn_data = self.add_to_byte_array(rtn_data, speech)
-                header[gabriel.Protocol_result.JSON_KEY_SPEECH] = (offset, len(speech))
+
+                if AEDStateCheck.CURRENT_AED_STATE != PREVIOUS_STATE:
+                    # add corresponding speech data
+                    PREVIOUS_STATE = AEDStateCheck.CURRENT_AED_STATE
+                    offset = len(rtn_data)
+                    speech = AEDStateCheck.get_speech_message()
+                    rtn_data = self.add_to_byte_array(rtn_data, speech)
+                    header[gabriel.Protocol_result.JSON_KEY_SPEECH] = (offset, len(speech))
                 return rtn_data
 
         else:

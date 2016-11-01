@@ -23,6 +23,7 @@ TPOD_QUEUE = collections.deque(maxlen=2)
 
 AEDStateCheck = aed_state_check.AEDState()
 TPODStateCheck = tpod_state_check.TpodState()
+is_running = True
 
 
 class AEDThread(threading.Thread):
@@ -31,7 +32,7 @@ class AEDThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        while (not self.stop.wait(0.01)):
+        while (not self.stop.wait(0.01) and is_running):
             try:
                 crt_pic = PIC_QUEUE.popleft()
                 AEDStateCheck.logic(crt_pic)
@@ -48,7 +49,7 @@ class TPODThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        while (not self.stop.wait(0.01)):
+        while (not self.stop.wait(0.01) and is_running):
             try:
                 crt_pic = TPOD_QUEUE.popleft()
                 TPODStateCheck.logic(crt_pic)
@@ -64,20 +65,25 @@ def main():
     aedThread = AEDThread()
     aedThread.start()
     # topdThread.start()
+    is_running = True
     process_video()
 
 
 def process_video():
     cap = cv2.VideoCapture("video/AED3.mp4")
-    while (True):
+    ret = True
+    while ret:
         ret, frame = cap.read()
         target_width = 500.0
         fx = target_width / frame.shape[0]
         # resize image to 500 width
         frame = cv2.resize(frame, (0, 0), fx=fx, fy=fx)
-        cv2.imshow("Video", frame)
+        if AEDStateCheck.has_debug_image():
+            cv2.imshow("Video", AEDStateCheck.get_debug_image())
         frame_process(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            is_running = False
+            ret = False
             break
     cap.release()
     cv2.destroyAllWindows()
