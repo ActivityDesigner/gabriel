@@ -38,7 +38,7 @@ class AEDState:
         # define your global vars here..
         try:
             crt_pic = image
-            # print "[AED THREAD] current frame:" + str(frame_counter)
+            print "[AED THREAD] current frame:" + str(self.frame_counter)
             if self.frame_counter > 10:
                 print "state" + str(self.CURRENT_AED_STATE)
                 if self.CURRENT_AED_STATE == AED_PREPARE:
@@ -66,7 +66,7 @@ class AEDState:
                         print "detect the yellow plug, now turn to stage 3 detection"
                         self.CURRENT_AED_STATE = AED_PULGIN
                         detected_x, detected_y, size_org = stage_2_main.retrieve_params()
-                        stage_3_main.set_params(detected_x, detected_y)
+                        stage_3_main.set_params(detected_x, detected_y,size_org)
 
                 elif self.CURRENT_AED_STATE == AED_PULGIN:
                     print "detect the flash button"

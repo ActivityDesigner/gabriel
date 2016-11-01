@@ -19,6 +19,7 @@ def set_params(x, y,size_org):
     org_size = size_org
 
 
+
 def retrieve_params():
     return detected_x, detected_y,org_size
 
@@ -40,6 +41,9 @@ def run(last_valid_frame,frame):
 
     global is_hand_appearing;
     global hand_disappear_cnt;
+    global detected_x
+    global detected_y
+    global org_size
     is_hand_appearing = True
 
     # if abs(hand_x - start_btn_x) < 200 and abs(hand_y - start_btn_y) < 200:
@@ -50,9 +54,13 @@ def run(last_valid_frame,frame):
     #     hand_disappear_cnt += 1
     #     if hand_disappear_cnt > 5:
     #         is_hand_appearing = False
-
+    print "stage_1_start " + str(detected_x) +" "+ str(detected_y)+" "+str(org_size)
     is_flash_detected = False
-
+    x,y,size = feature_detetor.detect_orange_btn(last_valid_frame,frame,detected_x,detected_y,org_size)
+    detected_x = x
+    detected_y = y
+    org_size = size
+    print "stage_1_end " + str(detected_x) +" "+ str(detected_y)+" "+str(org_size)
     if is_hand_appearing:
-        return flash_detetor.flash_detection(last_valid_frame,frame,detected_x,detected_y)
+        return flash_detetor.flash_detection(last_valid_frame,frame,detected_x,detected_y,org_size)
     return False

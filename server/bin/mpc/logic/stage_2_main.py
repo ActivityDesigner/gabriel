@@ -8,6 +8,7 @@ import feature_detetor
 org_size = 0
 detected_x = 0
 detected_y = 0
+frame_counter = 0
 
 
 def set_params(x,y,size_org):
@@ -18,6 +19,9 @@ def set_params(x,y,size_org):
     detected_y = y
     org_size = size_org
 
+def reset():
+    counter = 0
+
 
 def retrieve_params():
 
@@ -25,12 +29,18 @@ def retrieve_params():
 
 
 def run(last_valid_frame,frame):
-    feature_detetor.pre_size_estimate(1200, 3600)
     global detected_x
     global detected_y
-    is_detected,x,y = feature_detetor.detect_orange_btn(last_valid_frame, frame, detected_x, detected_y)
+    global frame_counter
+    if frame_counter < 2:
+        frame_counter += 1
+        return False
+    is_detected,x,y = feature_detetor.detect_yellow_plug(last_valid_frame, frame, detected_x, detected_y)
+    detected_x = x
+    detected_y = y
     if is_detected == 1:
         detected_x = x
         detected_y = y
+        reset()
         return True
     return False

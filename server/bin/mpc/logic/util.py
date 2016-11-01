@@ -24,7 +24,7 @@ def show_two_image(image1,image2):
     plt.show()
 
 
-def show_image(name,image,x,y):
+def show_image(name,image,x = 640,y = 320):
     dim = (x,y)
     resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
     cv2.imshow(name,resized)

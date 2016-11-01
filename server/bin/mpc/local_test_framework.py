@@ -60,10 +60,10 @@ class TPODThread(threading.Thread):
 
 
 def main():
-    topdThread = TPODThread()
+    # topdThread = TPODThread()
     aedThread = AEDThread()
     aedThread.start()
-    topdThread.start()
+    # topdThread.start()
     process_video()
 
 
@@ -85,7 +85,7 @@ def process_video():
 
 def frame_process(frame):
     PIC_QUEUE.append(frame.copy())
-    TPOD_QUEUE.append(frame.copy())
+    # TPOD_QUEUE.append(frame.copy())
 
 
 # def process_image():
