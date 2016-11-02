@@ -9,7 +9,7 @@ import stage_2_main
 import stage_3_main
 
 
-str1 = '../video/AED4.mp4'
+str1 = '../video/AED5.mp4'
 cap = cv2.VideoCapture(str1)
 while not cap.isOpened():
     cap = cv2.VideoCapture(str1)
@@ -76,7 +76,6 @@ while True:
                     is_success = stage_3_main.run(last_valid_frame,frame)
                     if is_success:
                         print "detect the flash button, now turn to end"
-                        util.show_two_image(last_valid_frame,frame)
                         current_stage = CONST_STAGE_SHOCK_DELIVER
 
                 elif current_stage == CONST_STAGE_SHOCK_DELIVER:

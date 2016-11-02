@@ -47,6 +47,6 @@ def getRotatedImage(image_file, green_loc, yellow_loc, blue_loc):
     return dst
 
 
-def debug_print(tag,msg,is_show = True):
+def debug_print(tag,msg,is_show = True ):
     if is_show:
         print tag +" " + str(msg)

@@ -46,7 +46,7 @@ class TpodState():
         cv2.imwrite("temp.jpg", pic)
         for object, port in self.objects.iteritems():
             files = {'picture': open('temp.jpg', 'rb')}
-            r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + port + "/0", files=files)
+            r = requests.post("http://cloudlet001.elijah.cs.cmu.edu:" + str(port) + "/0", files=files)
             response = eval(r.content)
             if r.status_code != 500 and len(response) > 0:
                 os.remove("temp.jpg")

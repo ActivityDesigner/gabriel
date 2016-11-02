@@ -68,13 +68,13 @@ def reset():
 #
 # to estimate the area size of the target is within the range
 #
-def area_estimate(area,type):
+def area_estimate(area,org_size,type):
     area_size_1 = 0
     area_size_2 = 0
     #orange button
     if(type == 1):
-        area_size_1 = orange_btn_size_min
-        area_size_2 = orange_btn_size_max
+        area_size_1 = org_size * 0.8;
+        area_size_2 = org_size * 1.5;
     #person hand
     elif type == 2:
         area_size_1 = 12000
@@ -120,8 +120,8 @@ def determine_orange_btn(array,detected_org_x,detected_org_y):
 
 
 def determine_yellow_plug(cnts,btn_x,btn_y):
-    slope_left = 2.5
-    slope_right = 5
+    slope_left = 1
+    slope_right = 2
     for cnt in cnts:
         x, y, w, h = cv2.boundingRect(cnt)
         if x != btn_x:
@@ -319,7 +319,7 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
-        if area_estimate(area0, 1):
+        if area_estimate(area0, org_size,  1):
             print area0
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
             print x1, y1, w1, h1
@@ -341,7 +341,7 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
     if result2 == 1:
         global confidence_counter
         confidence_counter += 1
-    if confidence_counter > 3:
+    if confidence_counter > 10:
         cv2.imwrite("plug.jpg",image2)
         cv2.imwrite("plug-gray.jpg",res2)
         return 1,x2,y2, org_size

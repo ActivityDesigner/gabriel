@@ -34,7 +34,7 @@ def run(last_valid_frame,frame):
     global org_size
     global frame_counter
 
-    is_detected,x,y,size = feature_detetor.detect_yellow_plug(last_valid_frame, frame, detected_x, detected_y,org_size,2)
+    is_detected,x,y,size = feature_detetor.detect_yellow_plug(last_valid_frame, frame, detected_x, detected_y,org_size)
     detected_x = x
     detected_y = y
     org_size = size

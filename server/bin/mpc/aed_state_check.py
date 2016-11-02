@@ -56,6 +56,7 @@ class AEDState:
         try:
             crt_pic = image
             if self.frame_counter > 10:
+                self.debug_image = crt_pic
                 print "state" + str(self.CURRENT_AED_STATE)
                 if self.CURRENT_AED_STATE == AED_PREPARE:
                     # do preposition
@@ -94,6 +95,7 @@ class AEDState:
                     print "CONST_STAGE_SHOCK_DELIVER"
 
             self.frame_counter += 1
+            print "frame counter " + str(self.frame_counter)
             self.last_pic = crt_pic
 
         except IndexError as e:

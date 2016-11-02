@@ -32,7 +32,7 @@ def left_top_flash_num():
 
 def estimate_org_flash_size(area,org_size):
     half_size = org_size / 2
-    left = half_size - 500
+    left = half_size - org_size / 3
     right = org_size
     if area > left and area < right:
         return True
@@ -56,8 +56,8 @@ def flash_detection(img1, img2, orange_x, orange_y, size,show_type = 0):
     print org_pos_x,org_pos_y
 
 
-    ret, thresh1 = cv2.threshold(img1, 200, 255, cv2.THRESH_BINARY)
-    ret, thresh2 = cv2.threshold(img2, 200, 255, cv2.THRESH_BINARY)
+    ret, thresh1 = cv2.threshold(img1, 205, 255, cv2.THRESH_BINARY)
+    ret, thresh2 = cv2.threshold(img2, 205, 255, cv2.THRESH_BINARY)
 
     hsv1 = cv2.cvtColor(thresh1, cv2.COLOR_BGR2GRAY)
     hsv2 = cv2.cvtColor(thresh2, cv2.COLOR_BGR2GRAY)
@@ -111,6 +111,8 @@ def flash_detection(img1, img2, orange_x, orange_y, size,show_type = 0):
     if confidence_counter >= 4:
         print "detected"
         reset()
+        cv2.imwrite("state3-1.jpg",img2)
+        cv2.imwrite("state3-2.jpg",hsv2)
         return True
     print '------------end'
     return False
