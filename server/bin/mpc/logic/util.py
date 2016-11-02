@@ -45,3 +45,8 @@ def getRotatedImage(image_file, green_loc, yellow_loc, blue_loc):
     M = cv2.getAffineTransform(pts1,pts2)
     dst = cv2.warpAffine(img,M,(cols,rows))
     return dst
+
+
+def debug_print(tag,msg,is_show = True):
+    if is_show:
+        print tag +" " + str(msg)

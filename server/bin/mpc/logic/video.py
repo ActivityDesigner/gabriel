@@ -9,7 +9,7 @@ import stage_2_main
 import stage_3_main
 
 
-str1 = '../video/AED3.mp4'
+str1 = '../video/AED4.mp4'
 cap = cv2.VideoCapture(str1)
 while not cap.isOpened():
     cap = cv2.VideoCapture(str1)
@@ -41,7 +41,7 @@ while True:
         pos_frame = cap.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)
         if pos_frame > last_pos_frame + frame_sampling:
 
-            if frame_counter > 20:
+            if frame_counter > 10:
 
                 #last_valid_frame = util.getRotatedImage(last_valid_frame, [600, 300], [500, 500], [720, 380])
                 #frame = util.getRotatedImage(frame, [600, 300], [500, 500], [720, 380])
@@ -51,9 +51,8 @@ while True:
                     if is_prepared:
                         print "find the aed and well prepared, now turn to stage 1 detection"
                         current_stage = CONST_STAGE_START
-                        detected_x,detected_y = stage_pre_main.retrieve_pos()
-                        size_org = stage_pre_main.retrieve_size()
-                        stage_1_main.set_params(detected_x,detected_y,size_org)
+                        detected_x,detected_y,size_org = stage_pre_main.retrieve_org_btn_params()
+                        stage_1_main.set_org_params(detected_x,detected_y,size_org)
 
                 elif current_stage == CONST_STAGE_START:
                     # do start stage detection
@@ -61,7 +60,7 @@ while True:
                     if is_success:
                         print "detect the aed turn on, now turn to stage 2 detection"
                         current_stage = CONST_STAGE_PLUG
-                        detected_x,detected_y,size_org = stage_1_main.retrieve_params()
+                        detected_x,detected_y,size_org = stage_1_main.retrieve_org_params()
                         stage_2_main.set_params(detected_x,detected_y,size_org)
 
                 elif current_stage == CONST_STAGE_PLUG:
@@ -86,7 +85,10 @@ while True:
             last_pos_frame = pos_frame
             last_valid_frame = frame
             frame_counter = frame_counter + 1
-            print "####################"
+            print "#################### Frame counter" + str(frame_counter)
+            if frame_counter == 100:
+                util.show_two_image(last_valid_frame,frame)
+
     else:
         # The next frame is not ready, so we try to read it again
         cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, pos_frame-1)

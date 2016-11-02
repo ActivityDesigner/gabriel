@@ -63,9 +63,8 @@ class AEDState:
                     if is_prepared:
                         print "find the aed and well prepared, now turn to stage 1 detection"
                         self.CURRENT_AED_STATE = AED_START
-                        detected_x, detected_y = stage_pre_main.retrieve_pos()
-                        size_org = stage_pre_main.retrieve_size()
-                        stage_1_main.set_params(detected_x, detected_y, size_org)
+                        detected_x, detected_y,size_org = stage_pre_main.retrieve_org_btn_params()
+                        stage_1_main.set_org_params(detected_x, detected_y, size_org)
 
                 elif self.CURRENT_AED_STATE == AED_START:
                     # do start stage detection
@@ -73,7 +72,7 @@ class AEDState:
                     if is_success:
                         print "detect the aed turn on, now turn to stage 2 detection"
                         self.CURRENT_AED_STATE = AED_ON
-                        detected_x, detected_y, size_org = stage_1_main.retrieve_params()
+                        detected_x, detected_y, size_org = stage_1_main.retrieve_org_params()
                         stage_2_main.set_params(detected_x, detected_y, size_org)
 
                 elif self.CURRENT_AED_STATE == AED_ON:

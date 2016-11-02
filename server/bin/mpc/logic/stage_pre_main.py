@@ -7,23 +7,36 @@ import aed_detector
 import util
 import color_filter
 
+TAG = "stage_pre_main"
+
+#Const estimated size of orange button
+Dummy_Org_Size_Min = 1000
+Dummy_Org_Size_Max = 3000
+Dummy_Similar_Dis = 50
+Confidence_Min_Counter = 5
+
+
+# orange button
 detected_org_x = 0
 detected_org_y = 0
 detected_org_size = 0
+detected_counter = 0
+
+def reset():
+    global detected_counter
+    detected_counter = 0
 
 
-
-def retrieve_pos():
-    return detected_org_x,detected_org_y
-
-
-def retrieve_size():
-    return detected_org_size
+#
+# For retrieving the detected orange button params
+#
+def retrieve_org_btn_params():
+    return detected_org_x,detected_org_y,detected_org_size
 
 
-def is_dummy_size(size):
+def within_org_dummy_size(size):
 
-    if(size < 3000 and size > 1000):
+    if size < Dummy_Org_Size_Max and size > Dummy_Org_Size_Min:
         return True
     return False
 
@@ -31,7 +44,7 @@ def is_dummy_size(size):
 def is_similar(cnts1,cnts2):
 
     to_return = []
-    min_dis = 50
+    min_dis = Dummy_Similar_Dis
     for cnt1 in cnts1:
         for cnt2 in cnts2:
             x1, y1, w1, h1 = cv2.boundingRect(cnt1)
@@ -50,6 +63,7 @@ def prepare(last_valid_frame,frame):
     global detected_org_x
     global detected_org_y
     global detected_org_size
+    global detected_counter
 
     res1, res2 = color_filter.filter_orange(last_valid_frame, frame)
     # transfer HSV to Binary image for contour detection
@@ -65,33 +79,35 @@ def prepare(last_valid_frame,frame):
     org_btn_candidate_1 = []
     org_btn_candidate_2 = []
 
-    print "------------prepare start"
+    util.debug_print(TAG,"image1")
     for cnt in cnts1:
         area0 = cv2.contourArea(cnt)
         cnt_len = cv2.arcLength(cnt, True)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
-        if is_dummy_size(area0):
-            print area0
+        if within_org_dummy_size(area0):
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            print x1,y1,w1,h1
+            util.debug_print(TAG, "size1 "+str(area0)+" x "+str(x1) +" y "+str(y1))
             org_btn_candidate_1.append(cnt)
-    print '------------prepare end'
+
+    util.debug_print(TAG,"image2")
     for cnt in cnts2:
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
-        if is_dummy_size(area0):
-            print area0
+        if within_org_dummy_size(area0):
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            print x1, y1, w1, h1
+            util.debug_print(TAG, "size2 "+str(area0)+" x "+str(x1) +" y "+str(y1))
             org_btn_candidate_2.append(cnt)
 
     nums = is_similar(org_btn_candidate_1,org_btn_candidate_2)
     if len(nums) > 0:
-        is_prepared = True
-        detected_org_x = nums[0]
-        detected_org_y = nums[1]
-        detected_org_size = nums[2]
+        detected_counter += 1
+        if detected_counter > Confidence_Min_Counter:
+            reset()
+            is_prepared = True
+            detected_org_x = nums[0]
+            detected_org_y = nums[1]
+            detected_org_size = nums[2]
 
     # is_aed_detected = aed_detector.aed_detect(last_valid_frame, frame)
     # # now find the orange button and other important items precisely

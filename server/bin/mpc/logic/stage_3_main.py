@@ -42,7 +42,7 @@ def run(last_valid_frame,frame):
     global no_flashing_cnt
     global is_flashing
 
-    x,y,size = feature_detetor.detect_orange_btn(last_valid_frame,frame,detected_x,detected_y,org_size,2)
+    x,y,size,is_success = feature_detetor.detect_orange_btn(last_valid_frame,frame,detected_x,detected_y,org_size,2)
 
     is_detected = flash_detetor.flash_detection(last_valid_frame, frame, x, y,size)
     if is_flashing:

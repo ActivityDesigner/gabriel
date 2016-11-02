@@ -70,7 +70,7 @@ def main():
 
 
 def process_video():
-    cap = cv2.VideoCapture("video/AED3.mp4")
+    cap = cv2.VideoCapture("video/AED4.mp4")
     ret = True
     while ret:
         ret, frame = cap.read()

@@ -30,12 +30,21 @@ def left_top_flash_num():
     return 0
 
 
+def estimate_org_flash_size(area,org_size):
+    half_size = org_size / 2
+    left = half_size - 500
+    right = org_size
+    if area > left and area < right:
+        return True
+    return False
+
+
 def reset():
     global confidence_counter
     confidence_counter = 0
 
 
-def flash_detection(img1, img2, orange_x, orange_y,org_size,show_type = 0):
+def flash_detection(img1, img2, orange_x, orange_y, size,show_type = 0):
 
     print "---------------------------flash detection start"
     global org_pos_x;
@@ -63,22 +72,22 @@ def flash_detection(img1, img2, orange_x, orange_y,org_size,show_type = 0):
         util.show_image("w1",hsv1,640,320)
         util.show_image("w2",img2,640,320)
 
-    org_btn_candidate_1 = []
+    # org_btn_candidate_1 = []
     org_btn_candidate_2 = []
 
-    print "for area of cnts 1"
-    for cnt in cnts1:
-        area0 = cv2.contourArea(cnt)
-        #if area0 > 10:
-        #    print area0
-        cnt_len = cv2.arcLength(cnt, True)
-        cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
-        if area0 > 100:
-            print "area " + str(area0)
-        if feature_detetor.estimate_orange_area(area0,org_size):
-            x, y, w, h = cv2.boundingRect(cnt)
-            print org_pos_x,org_pos_y,x,y,w,h
-            org_btn_candidate_1.append(cnt)
+    # print "for area of cnts 1"
+    # for cnt in cnts1:
+    #     area0 = cv2.contourArea(cnt)
+    #     #if area0 > 10:
+    #     #    print area0
+    #     cnt_len = cv2.arcLength(cnt, True)
+    #     cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
+    #     #if area0 > 100:
+    #         #print "area " + str(area0)
+    #     if estimate_org_flash_size(area0, size):#feature_detetor.estimate_orange_area(area0,size):
+    #         x, y, w, h = cv2.boundingRect(cnt)
+    #         print org_pos_x,org_pos_y,x,y,area0
+    #         org_btn_candidate_1.append(cnt)
 
     print "for area of cnts 2"
     for cnt in cnts2:
@@ -87,20 +96,19 @@ def flash_detection(img1, img2, orange_x, orange_y,org_size,show_type = 0):
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
-        if area0 > 100:
-            print "area "+str(area0)
-        if feature_detetor.estimate_orange_area(area0,org_size):
+        #if area0 > 100:
+            #print "area "+str(area0)
+        if estimate_org_flash_size(area0,size):#feature_detetor.estimate_orange_area(area0,size):
             x, y, w, h = cv2.boundingRect(cnt)
-            print org_pos_x,org_pos_y,x,y,w,h
+            print org_pos_x,org_pos_y,x,y,area0
             org_btn_candidate_2.append(cnt)
-    counter1 = orange_flash_num(org_btn_candidate_1)
+    #counter1 = orange_flash_num(org_btn_candidate_1)
     counter2 = orange_flash_num(org_btn_candidate_2)
 
-    if counter1+counter2 == 2:
-        print org_btn_candidate_1
-        print org_btn_candidate_2
+    if counter2 == 1:
+        #print org_btn_candidate_2
         confidence_counter += 1
-    if confidence_counter >= 2:
+    if confidence_counter >= 4:
         print "detected"
         reset()
         return True
