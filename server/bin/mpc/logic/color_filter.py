@@ -6,14 +6,14 @@ import cv2
 import numpy as np
 
 
-def filter_flash(image1,image2):
+def filter_flash(image1, image2):
     print "a"
 
 
 #
 # transform two image using red-only filter
 #
-def filter_red(image1,image2):
+def filter_red(image1, image2):
     # loop over the contours
     lower_blue = np.array([0, 0, 0])
     upper_blue = np.array([30, 135, 100])
@@ -31,7 +31,7 @@ def filter_red(image1,image2):
 #
 # transform two image using green-only filter
 #
-def filter_green(image1,image2):
+def filter_green(image1, image2):
     # loop over the contours
     lower_green = np.array([100, 20, 20])
     upper_green = np.array([255, 100, 100])
@@ -49,7 +49,7 @@ def filter_green(image1,image2):
 #
 # transform two image using orange-only filter
 #
-def filter_orange(image1,image2):
+def filter_orange(image1, image2):
     # loop over the contours
     lower_blue = np.array([4, 135, 44])
     upper_blue = np.array([43, 255, 255])
@@ -61,4 +61,4 @@ def filter_orange(image1,image2):
     mask2 = cv2.inRange(hsv2, lower_blue, upper_blue)
     res1 = cv2.bitwise_and(image1.copy(), image1.copy(), mask=mask1)
     res2 = cv2.bitwise_and(image2.copy(), image2.copy(), mask=mask2)
-    return res1,res2
+    return res1, res2

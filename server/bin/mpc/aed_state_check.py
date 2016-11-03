@@ -30,11 +30,12 @@ AED_SHOCK = 3
 class AEDState:
     speech_message = {
         AED_PREPARE: "Please look at AED, begin cognitive assistant soon",
-        AED_START : "Please turn on AED.",
+        AED_START: "Please turn on AED.",
         AED_ON: "Nice! Now apply pad and plug in",
         AED_PULGIN: "Congratulations, now wait for further instructions",
         AED_SHOCK: "Press orange button to deliver shock"
     }
+
     def __init__(self):
         # AED STATE
         self.CURRENT_AED_STATE = AED_PREPARE
@@ -64,7 +65,7 @@ class AEDState:
                     if is_prepared:
                         print "find the aed and well prepared, now turn to stage 1 detection"
                         self.CURRENT_AED_STATE = AED_START
-                        detected_x, detected_y,size_org = stage_pre_main.retrieve_org_btn_params()
+                        detected_x, detected_y, size_org = stage_pre_main.retrieve_org_btn_params()
                         stage_1_main.set_org_params(detected_x, detected_y, size_org)
 
                 elif self.CURRENT_AED_STATE == AED_START:
@@ -82,7 +83,7 @@ class AEDState:
                         print "detect the yellow plug, now turn to stage 3 detection"
                         self.CURRENT_AED_STATE = AED_PULGIN
                         detected_x, detected_y, size_org = stage_2_main.retrieve_params()
-                        stage_3_main.set_params(detected_x, detected_y,size_org)
+                        stage_3_main.set_params(detected_x, detected_y, size_org)
 
                 elif self.CURRENT_AED_STATE == AED_PULGIN:
                     print "detect the flash button"

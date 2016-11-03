@@ -74,6 +74,8 @@ def process_video():
     ret = True
     while ret:
         ret, frame = cap.read()
+        if not frame:
+            break
         target_width = 500.0
         fx = target_width / frame.shape[0]
         # resize image to 500 width

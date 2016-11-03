@@ -13,8 +13,8 @@ hsv2 = cv2.cvtColor(thresh2, cv2.COLOR_BGR2GRAY)
 
 util.show_two_image(hsv1,hsv2)
 
-cnts1, hierarchy1,_ = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-cnts2, hierarchy2,_ = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+_, cnts1, hierarchy1 = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+_, cnts2, hierarchy2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
 print sum(cnts1)
 print cnts2
