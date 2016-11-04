@@ -45,7 +45,7 @@ def run(last_valid_frame,frame):
     global detected_y
     global org_size
 
-    x,y,size,is_success = feature_detetor.detect_orange_btn(last_valid_frame,frame,detected_x,detected_y,org_size,2)
+    x,y,size,is_success = feature_detetor.detect_orange_btn(last_valid_frame,frame,detected_x,detected_y,org_size,0)
     detected_x = x
     detected_y = y
     org_size = size
