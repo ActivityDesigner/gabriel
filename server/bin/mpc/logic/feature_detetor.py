@@ -221,10 +221,10 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
         area0 = cv2.contourArea(cnt)
         if area0 > 1000:
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            util.debug_print(TAG, "test " + str(area0) + " x " + str(x1) + " y " + str(y1))
+            # util.debug_print(TAG, "test " + str(area0) + " x " + str(x1) + " y " + str(y1))
         if estimate_orange_area(area0, org_size):
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            util.debug_print(TAG, "size2 " + str(area0) + " x " + str(x1) + " y " + str(y1))
+            # util.debug_print(TAG, "size2 " + str(area0) + " x " + str(x1) + " y " + str(y1))
             org_btn_candidate_2.append(cnt)
 
     if len(org_btn_candidate_2) == 0:
@@ -313,9 +313,9 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
         if area_estimate(area0, org_size, 1):
-            print area0
+            # print area0
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            print x1, y1, w1, h1
+            # print x1, y1, w1, h1
             org_btn_candidate_2.append(cnt)
 
             # cnt1 = determine_orange_btn(org_btn_candidate_1,org_pos_x,org_pos_y)

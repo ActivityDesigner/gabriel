@@ -48,5 +48,6 @@ def getRotatedImage(image_file, green_loc, yellow_loc, blue_loc):
 
 
 def debug_print(tag,msg,is_show = True ):
+    is_show = False
     if is_show:
         print tag +" " + str(msg)
