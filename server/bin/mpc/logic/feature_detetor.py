@@ -10,6 +10,8 @@ import flash_detetor
 import time
 import color_filter
 import stage_pre_main
+import log
+import const
 
 TAG = "feature_detector"
 
@@ -34,16 +36,6 @@ orange_btn_size_min = 1000
 orange_btn_size_max = 3000
 confidence_counter = 0
 position_failed_counter = 0
-
-
-#
-# must be called before using detect_stage_area to set value for orange button size
-#
-def pre_size_estimate(size_min, size_max):
-    global orange_btn_size_min
-    global orange_btn_size_max
-    orange_btn_size_min = size_min
-    orange_btn_size_max = size_max
 
 
 # def shape_detect(c):
@@ -86,17 +78,18 @@ def area_estimate(area, org_size, type):
 
 
 def estimate_org_area_coor(area_size, org_size, x, y, org_x, org_y):
-    if abs(x - org_x) > 80:
+    if abs(x - org_x) > const.Org_Btn_Coor_Vari:
         return False
-    if abs(y - org_y) > 80:
+    if abs(y - org_y) > const.Org_Btn_Coor_Vari:
         return False
-    if area_size < org_size + 1000 and area_size > org_size - 1000:
+    if area_size < org_size + const.Org_Btn_Coor_Size_Vari and area_size > org_size - const.Org_Btn_Coor_Size_Vari:
         return True
     return False
 
 
 def estimate_orange_area(area_size, org_size):
-    if area_size < org_size + 500 + dynamic_org_size and area_size > org_size - 500 - dynamic_org_size:
+    if area_size < org_size + const.Org_Btn_Static_Vari + dynamic_org_size \
+            and area_size > org_size - const.Org_Btn_Static_Vari - dynamic_org_size:
         return True
     return False
 
@@ -124,7 +117,7 @@ def determine_yellow_plug(cnts, btn_x, btn_y):
         x, y, w, h = cv2.boundingRect(cnt)
         if x != btn_x:
             slope = float(np.abs(y - btn_y)) / float(np.abs(x - btn_x))
-            print "slope", str(slope), str(x), str(y)
+            log.print_debug(TAG,"slope "+str(slope)+" Posx: "+str(x)+" Posy: "+str(y))
             if slope > slope_left and slope < slope_right:
                 return 1
     return 0
@@ -181,6 +174,9 @@ def detect_hand(image1, image2):
 
 
 def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=0):
+
+    log.print_debug(TAG,"-----------detect_orange_btn-----------")
+
     global dynamic_org_size
     global last_detected_org_size
 
@@ -198,7 +194,13 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
     # ret1, thresh1 = cv2.threshold(black1, 0, 255, cv2.THRESH_BINARY)
     ret2, thresh2 = cv2.threshold(black2, 0, 255, cv2.THRESH_BINARY)
     # cnts1, hierarchy = cv2.findContours(thresh1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    _, cnts2, hierarchy = cv2.findContours(thresh2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    tmp = cv2.findContours(thresh2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    if len(tmp) == 3:
+        cnts2 = tmp[1]
+        hierarchy = tmp[2]
+    else:
+        cnts2 = tmp[0]
+        hierarchy = tmp[1]
     # cnts1 and cnts2 contain the contour result
     # org_btn_candidate_1 = []
     org_btn_candidate_2 = []
@@ -213,28 +215,27 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
     #         util.debug_print(TAG, "size1 " + str(area0) + " x " + str(x1) +" y "+ str(y1))
     #         org_btn_candidate_1.append(cnt)
 
-    util.debug_print(TAG, "detect_orange_btn img2")
+    util.debug_print(TAG, "img2:")
     for cnt in cnts2:
         cnt_len = cv2.arcLength(cnt, True)
         # area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
         area0 = cv2.contourArea(cnt)
-        if area0 > 1000:
-            x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            # util.debug_print(TAG, "test " + str(area0) + " x " + str(x1) + " y " + str(y1))
         if estimate_orange_area(area0, org_size):
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            # util.debug_print(TAG, "size2 " + str(area0) + " x " + str(x1) + " y " + str(y1))
+            log.print_debug(TAG, "candidate area size " + str(area0) + " Posx " + str(x1) + " Posy " + str(y1))
             org_btn_candidate_2.append(cnt)
 
     if len(org_btn_candidate_2) == 0:
         # thinking if is because size variant too much
+        log.print_debug(TAG, "size variant too much ?")
         for cnt in cnts2:
             cnt_len = cv2.arcLength(cnt, True)
             # area0 = cv2.contourArea(cnt)
             cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
             area0 = cv2.contourArea(cnt)
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
+            log.print_debug(TAG, "variant area size " + str(area0) + " Posx " + str(x1) + " Posy " + str(y1))
             if estimate_org_area_coor(area0, org_size, x1, y1, org_pos_x, org_pos_y):
                 org_btn_candidate_2.append(cnt)
 
@@ -252,12 +253,15 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
         return org_pos_x, org_pos_y, org_size, False
     x2, y2, w2, h2 = cv2.boundingRect(cnt2)
     area0 = cv2.contourArea(cnt2)
+    log.print_debug(TAG,"detected orange button size "+str(area0)+" "+" x2 "+str(x2)+" y2 "+str(y2))
     return x2, y2, area0, True
 
 
 def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type=0):
-    util.debug_print(TAG, "detect_yellow_plug " + str(org_pos_x) + " " + str(org_pos_y))
-    print org_pos_x, org_pos_y
+
+    log.print_debug(TAG,"-----------detect_yellow_plug-----------")
+    log.print_debug(TAG,"value passed in"+" Posx "+str(org_pos_x) + " Posy " + str(org_pos_y) + " size " +str(org_size))
+
     global position_failed_counter
     #
     # if last_detected_org_x == 0 and last_detected_org_y == 0:
@@ -293,7 +297,13 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
     # ret1, thresh1 = cv2.threshold(black1, 0, 255, cv2.THRESH_BINARY)
     ret2, thresh2 = cv2.threshold(black2, 0, 255, cv2.THRESH_BINARY)
     # cnts1, hierarchy = cv2.findContours(thresh1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    _, cnts2, hierarchy = cv2.findContours(thresh2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    return1 = cv2.findContours(thresh2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    if len(return1) == 3:
+        cnts2 = return1[1]
+        hierarchy = return1[2]
+    else:
+        cnts2 = return1[0]
+        hierarchy = return1[1]
     # # cnts1 and cnts2 contain the contour result
     # org_btn_candidate_1 = []
     org_btn_candidate_2 = []
@@ -307,7 +317,6 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
     #         x1, y1, w1, h1 = cv2.boundingRect(cnt)
     #         print x1,y1,w1,h1
     #         org_btn_candidate_1.append(cnt)
-    util.debug_print(TAG, "detect_yellow_plug")
     for cnt in cnts2:
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)

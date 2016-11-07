@@ -1,6 +1,9 @@
 import util
 import cv2
 
+
+print cv2.__version__
+
 im1 = cv2.imread("../test1.jpg")
 im2 = cv2.imread("../test2.jpg")
 util.show_two_image(im1, im2)

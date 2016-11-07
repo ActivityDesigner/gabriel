@@ -6,9 +6,13 @@ import flash_detetor
 import feature_detetor
 import util
 import stage_pre_main
+import log
 
 TAG = "stage_1_main"
 Failed_Tolerant = 30
+
+current_image = None
+filter_image = None
 
 org_size = 0
 detected_x = 0
@@ -26,6 +30,10 @@ def set_org_params(x, y, size_org):
     detected_x = x
     detected_y = y
     org_size = size_org
+
+
+def get_two_image():
+    return current_image,filter_image
 
 
 # Retrieving orange button params
@@ -54,6 +62,9 @@ def run(last_valid_frame, frame):
     global org_size
     global failed_counter
     global success_counter
+    global current_image
+    global filter_image
+
     is_hand_appearing = True
 
     # if abs(hand_x - start_btn_x) < 200 and abs(hand_y - start_btn_y) < 200:
@@ -76,11 +87,11 @@ def run(last_valid_frame, frame):
     # if we detect the aed device is not within the screen or orange button is missing for
     if is_success == False:
         # using a tolerate false detection range
-        util.debug_print(TAG, "fail to find orange button")
+        log.print_error(TAG, "fail to find orange button")
         failed_counter += 1
         if failed_counter > Failed_Tolerant:
             # the aed device is missing, start the refind process
-            util.debug_print(TAG, "The AED device is missing, preparation again")
+            log.print_error(TAG, "The AED device is missing, preparation again")
             is_find = stage_pre_main.prepare(last_valid_frame, frame)
             if is_find:
                 failed_counter = 0
@@ -88,6 +99,7 @@ def run(last_valid_frame, frame):
 
     if is_hand_appearing:
         is_detect = flash_detetor.flash_detection(last_valid_frame, frame, detected_x, detected_y, org_size, 0)
+        current_image,filter_image = flash_detetor.get_two_image()
         if is_detect:
             return True
     return False

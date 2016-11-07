@@ -19,6 +19,7 @@ import logic.stage_pre_main as stage_pre_main
 import logic.stage_1_main as stage_1_main
 import logic.stage_2_main as stage_2_main
 import logic.stage_3_main as stage_3_main
+import logic.log as log
 
 AED_PREPARE = -1
 AED_START = 0
@@ -26,6 +27,12 @@ AED_ON = 1
 AED_PULGIN = 2
 AED_SHOCK = 3
 
+image_prepare = None
+image_turn_on = None
+image_plug_in = None
+image_shock = None
+
+TAG = "MAIN"
 
 class AEDState:
     speech_message = {
@@ -36,18 +43,28 @@ class AEDState:
         AED_SHOCK: "Press orange button to deliver shock"
     }
 
+    def __del__(self):
+        log.close_all()
+
     def __init__(self):
         # AED STATE
         self.CURRENT_AED_STATE = AED_PREPARE
         self.last_pic = None
         self.frame_counter = 0
         self.debug_image = None
+        self.debug_image2 = None
 
     def has_debug_image(self):
         return self.debug_image != None
 
+    def has_debug_image2(self):
+        return self.debug_image2 != None
+
     def get_debug_image(self):
         return self.debug_image
+
+    def get_debug_image2(self):
+        return self.debug_image2
 
     def get_speech_message(self):
         return self.speech_message[self.CURRENT_AED_STATE]
@@ -57,13 +74,14 @@ class AEDState:
         try:
             crt_pic = image
             if self.frame_counter > 10:
-                self.debug_image = crt_pic
-                print "state" + str(self.CURRENT_AED_STATE)
+                #self.debug_image = crt_pic
                 if self.CURRENT_AED_STATE == AED_PREPARE:
                     # do preposition
                     is_prepared = stage_pre_main.prepare(self.last_pic, crt_pic)
+                    self.debug_image,self.debug_image2 = stage_pre_main.get_two_image()
                     if is_prepared:
-                        print "find the aed and well prepared, now turn to stage 1 detection"
+                        image_prepare = stage_pre_main.get_contour_image()
+                        log.print_info(TAG,"at frame "+str(self.frame_counter)+" find the aed and well prepared, now turn to stage 1 detection")
                         self.CURRENT_AED_STATE = AED_START
                         detected_x, detected_y, size_org = stage_pre_main.retrieve_org_btn_params()
                         stage_1_main.set_org_params(detected_x, detected_y, size_org)
@@ -71,8 +89,9 @@ class AEDState:
                 elif self.CURRENT_AED_STATE == AED_START:
                     # do start stage detection
                     is_success = stage_1_main.run(self.last_pic, crt_pic)
+                    self.debug_image,self.debug_image2 = stage_1_main.get_two_image()
                     if is_success:
-                        print "detect the aed turn on, now turn to stage 2 detection"
+                        log.print_info(TAG,"at frame "+str(self.frame_counter)+" detect the aed turn on, now turn to stage 2 detection")
                         self.CURRENT_AED_STATE = AED_ON
                         detected_x, detected_y, size_org = stage_1_main.retrieve_org_params()
                         stage_2_main.set_params(detected_x, detected_y, size_org)
@@ -80,23 +99,22 @@ class AEDState:
                 elif self.CURRENT_AED_STATE == AED_ON:
                     is_success = stage_2_main.run(self.last_pic, crt_pic)
                     if is_success:
-                        print "detect the yellow plug, now turn to stage 3 detection"
+                        log.print_info(TAG,"at frame "+str(self.frame_counter)+" detect the yellow plug, now turn to stage 3 detection")
                         self.CURRENT_AED_STATE = AED_PULGIN
                         detected_x, detected_y, size_org = stage_2_main.retrieve_params()
                         stage_3_main.set_params(detected_x, detected_y, size_org)
 
                 elif self.CURRENT_AED_STATE == AED_PULGIN:
-                    print "detect the flash button"
                     is_success = stage_3_main.run(self.last_pic, crt_pic)
                     if is_success:
-                        print "detect the flash button, now turn to end"
+                        log.print_info(TAG,"detect the flash button, now turn to end")
                         self.CURRENT_AED_STATE = AED_SHOCK
 
                 elif self.CURRENT_AED_STATE == AED_SHOCK:
-                    print "CONST_STAGE_SHOCK_DELIVER"
+                    log.print_info(TAG, "shock delivered")
 
             self.frame_counter += 1
-            print "frame counter " + str(self.frame_counter)
+            log.print_debug(TAG,"frame counter " + str(self.frame_counter))
             self.last_pic = crt_pic
 
         except IndexError as e:

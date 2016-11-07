@@ -13,6 +13,7 @@ import tpod_state_check
 import Queue
 import collections
 from optparse import OptionParser
+import logic.util as util
 
 # AED project
 MAX_PIC_NUM = 100
@@ -70,18 +71,20 @@ def main():
 
 
 def process_video():
-    cap = cv2.VideoCapture("video/AED4.mp4")
+    cap = cv2.VideoCapture("video/glass/AED-fixed-2.mp4")
     ret = True
     while ret:
         ret, frame = cap.read()
-        if not frame:
+        if frame == None:
             break
         target_width = 500.0
         fx = target_width / frame.shape[0]
         # resize image to 500 width
         frame = cv2.resize(frame, (0, 0), fx=fx, fy=fx)
         if AEDStateCheck.has_debug_image():
-            cv2.imshow("Video", AEDStateCheck.get_debug_image())
+            util.show_image("Video", AEDStateCheck.get_debug_image())
+        if AEDStateCheck.has_debug_image2():
+            util.show_image("Processed",AEDStateCheck.get_debug_image2())
         frame_process(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             is_running = False

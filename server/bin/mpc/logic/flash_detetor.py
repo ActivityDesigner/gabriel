@@ -7,11 +7,22 @@ import numpy as np
 from matplotlib import pyplot as plt
 import util
 import feature_detetor
+import log
+import color_filter
+import const
 
 confidence_counter = 0
 org_pos_x = 0;
 org_pos_y = 0;
 org_size = 0;
+
+TAG = "flash_detetor"
+
+current_image = None
+filter_image = None
+
+def get_two_image():
+    return current_image,filter_image
 
 
 def orange_flash_num(candidate):
@@ -29,9 +40,9 @@ def left_top_flash_num():
 
 
 def estimate_org_flash_size(area, org_size):
-    half_size = org_size / 2
-    left = half_size - org_size / 3
-    right = org_size
+    #half_size = org_size / 2
+    left = const.Dummy_Org_Flashing_Size_Low #half_size - org_size / 3
+    right = const.Dummy_Org_Flashing_Size_Up #org_size
     if area > left and area < right:
         return True
     return False
@@ -43,25 +54,41 @@ def reset():
 
 
 def flash_detection(img1, img2, orange_x, orange_y, size, show_type=0):
-    print "---------------------------flash detection start"
+
+    log.print_debug(TAG,"---------------------------flash detection start")
     global org_pos_x;
     global org_pos_y;
     global confidence_counter;
+    global current_image
+    global filter_image
 
     org_pos_x = orange_x
     org_pos_y = orange_y
-    print org_pos_x, org_pos_y
 
-    ret, thresh1 = cv2.threshold(img1, 205, 255, cv2.THRESH_BINARY)
-    ret, thresh2 = cv2.threshold(img2, 205, 255, cv2.THRESH_BINARY)
+    hsv1,hsv2 = color_filter.filter_flash(img1,img2)
 
-    hsv1 = cv2.cvtColor(thresh1, cv2.COLOR_BGR2GRAY)
-    hsv2 = cv2.cvtColor(thresh2, cv2.COLOR_BGR2GRAY)
-
-    _, cnts1, hierarchy1 = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    _, cnts2, hierarchy2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    return1= cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    return2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     # cnts1 = cv2.findContours(hsv1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     # cnts2 = cv2.findContours(hsv2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    current_image = img2
+    filter_image = hsv2
+
+    if len(return1) == 3:
+        cnts1 = return1[1]
+        hierarchy1 = return1[2]
+    else:
+        cnts1 = return1[0]
+        hierarchy1 = return1[1]
+
+    if len(return2) == 3:
+        cnts2 = return2[1]
+        hierarchy2 = return2[2]
+    else:
+        cnts2 = return2[0]
+        hierarchy2 = return2[1]
+
     if show_type == 1:
         util.show_two_image(hsv1, hsv2)
     elif show_type == 2:
@@ -85,18 +112,20 @@ def flash_detection(img1, img2, orange_x, orange_y, size, show_type=0):
     #         print org_pos_x,org_pos_y,x,y,area0
     #         org_btn_candidate_1.append(cnt)
 
-    print "for area of cnts 2"
+    log.print_debug(TAG, "for area of cnts 2")
     for cnt in cnts2:
         # if area0 > 10:
         #   print area0
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, False)
-        # if area0 > 100:
-        # print "area "+str(area0)
+        if area0 > 100:
+            x, y, w, h = cv2.boundingRect(cnt)
+            print "flash button area size " + str(area0) + " Posx " + str(x) + " Posy " + str(y)
+
         if estimate_org_flash_size(area0, size):  # feature_detetor.estimate_orange_area(area0,size):
             x, y, w, h = cv2.boundingRect(cnt)
-            print org_pos_x, org_pos_y, x, y, area0
+            log.print_debug(TAG,"flash button area size "+str(size)+" Posx " +str(x)+" Posy "+str(y))
             org_btn_candidate_2.append(cnt)
     # counter1 = orange_flash_num(org_btn_candidate_1)
     counter2 = orange_flash_num(org_btn_candidate_2)
@@ -105,10 +134,8 @@ def flash_detection(img1, img2, orange_x, orange_y, size, show_type=0):
         # print org_btn_candidate_2
         confidence_counter += 1
     if confidence_counter >= 4:
-        print "detected"
+        log.print_debug(TAG, "detected!!")
         reset()
-        cv2.imwrite("state3-1.jpg", img2)
-        cv2.imwrite("state3-2.jpg", hsv2)
         return True
     print '------------end'
     return False

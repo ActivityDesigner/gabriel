@@ -3,7 +3,7 @@
 # Created by haodong liu
 #
 import feature_detetor
-
+import log
 
 org_size = 0
 detected_x = 0

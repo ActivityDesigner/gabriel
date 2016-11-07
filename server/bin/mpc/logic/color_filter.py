@@ -7,7 +7,15 @@ import numpy as np
 
 
 def filter_flash(image1, image2):
-    print "a"
+    #ret, thresh1 = cv2.threshold(image1, 205, 255, cv2.THRESH_BINARY)
+    #ret, thresh2 = cv2.threshold(image2, 205, 255, cv2.THRESH_BINARY)
+
+    ret, thresh1 = cv2.threshold(image1, 254, 255, cv2.THRESH_BINARY)
+    ret, thresh2 = cv2.threshold(image2, 254, 255, cv2.THRESH_BINARY)
+
+    hsv1 = cv2.cvtColor(thresh1, cv2.COLOR_BGR2GRAY)
+    hsv2 = cv2.cvtColor(thresh2, cv2.COLOR_BGR2GRAY)
+    return hsv1,hsv2
 
 
 #
@@ -51,8 +59,10 @@ def filter_green(image1, image2):
 #
 def filter_orange(image1, image2):
     # loop over the contours
-    lower_blue = np.array([4, 135, 44])
-    upper_blue = np.array([43, 255, 255])
+    #lower_blue = np.array([4, 135, 44])
+    #upper_blue = np.array([43, 255, 255])
+    lower_blue = np.array([8, 100, 100])
+    upper_blue = np.array([16, 130, 255])
     # transfer to HSV image
     hsv1 = cv2.cvtColor(image1, cv2.COLOR_BGR2HSV)
     hsv2 = cv2.cvtColor(image2, cv2.COLOR_BGR2HSV)

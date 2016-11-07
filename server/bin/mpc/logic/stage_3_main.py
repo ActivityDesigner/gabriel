@@ -4,6 +4,7 @@
 #
 import flash_detetor
 import feature_detetor
+import log
 
 detected_x = 0
 detected_y = 0

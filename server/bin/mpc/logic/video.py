@@ -9,7 +9,7 @@ import stage_2_main
 import stage_3_main
 
 
-str1 = '../video/AED5.mp4'
+str1 = '../video/glass/AED-fixed-2.mp4'
 cap = cv2.VideoCapture(str1)
 while not cap.isOpened():
     cap = cv2.VideoCapture(str1)
@@ -47,6 +47,7 @@ while True:
                 #frame = util.getRotatedImage(frame, [600, 300], [500, 500], [720, 380])
                 if current_stage == CONST_STAGE_PREPARE:
                     # do preposition
+                    util.show_two_image(frame,frame)
                     is_prepared = stage_pre_main.prepare(last_valid_frame,frame)
                     if is_prepared:
                         print "find the aed and well prepared, now turn to stage 1 detection"
