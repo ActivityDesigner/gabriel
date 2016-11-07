@@ -10,3 +10,9 @@ test-image/
 *.class
 *.swp
 .idea/
+
+*.txt
+
+*.jpg
+
+*.jpg

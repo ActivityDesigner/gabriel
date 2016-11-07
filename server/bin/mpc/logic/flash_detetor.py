@@ -29,8 +29,8 @@ def orange_flash_num(candidate):
     counter = 0
     for item1 in candidate:
         x1, y1, w1, h1 = cv2.boundingRect(item1)
-        if (x1 < org_pos_x + 100 and x1 > org_pos_x - 100):
-            if (y1 < org_pos_y + 100 and y1 > org_pos_y - 100):
+        if (x1 < org_pos_x + const.Dummy_Org_Flashing_Range and x1 > org_pos_x - const.Dummy_Org_Flashing_Range):
+            if (y1 < org_pos_y + const.Dummy_Org_Flashing_Range and y1 > org_pos_y - const.Dummy_Org_Flashing_Range):
                 counter += 1
     return counter
 
@@ -55,7 +55,7 @@ def reset():
 
 def flash_detection(img1, img2, orange_x, orange_y, size, show_type=0):
 
-    log.print_debug(TAG,"---------------------------flash detection start")
+    log.print_debug(TAG,"----------flash detection start----------")
     global org_pos_x;
     global org_pos_y;
     global confidence_counter;
@@ -64,6 +64,7 @@ def flash_detection(img1, img2, orange_x, orange_y, size, show_type=0):
 
     org_pos_x = orange_x
     org_pos_y = orange_y
+    log.print_debug(TAG, "passed in org_pos_x "+str(org_pos_x)+" org_pos_y "+str(org_pos_y)+" size "+str(size))
 
     hsv1,hsv2 = color_filter.filter_flash(img1,img2)
 
@@ -125,12 +126,12 @@ def flash_detection(img1, img2, orange_x, orange_y, size, show_type=0):
 
         if estimate_org_flash_size(area0, size):  # feature_detetor.estimate_orange_area(area0,size):
             x, y, w, h = cv2.boundingRect(cnt)
-            log.print_debug(TAG,"flash button area size "+str(size)+" Posx " +str(x)+" Posy "+str(y))
+            log.print_debug(TAG,"flash button area size "+str(area0)+" Posx " +str(x)+" Posy "+str(y))
             org_btn_candidate_2.append(cnt)
     # counter1 = orange_flash_num(org_btn_candidate_1)
     counter2 = orange_flash_num(org_btn_candidate_2)
 
-    if counter2 == 1:
+    if counter2 >= 1:
         # print org_btn_candidate_2
         confidence_counter += 1
     if confidence_counter >= 4:

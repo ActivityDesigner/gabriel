@@ -27,10 +27,6 @@ AED_ON = 1
 AED_PULGIN = 2
 AED_SHOCK = 3
 
-image_prepare = None
-image_turn_on = None
-image_plug_in = None
-image_shock = None
 
 TAG = "MAIN"
 
@@ -53,6 +49,14 @@ class AEDState:
         self.frame_counter = 0
         self.debug_image = None
         self.debug_image2 = None
+        self.image_prepare_1 = None
+        self.image_prepare_2 = None
+        self.image_turn_on_1 = None
+        self.image_turn_on_2 = None
+        self.image_plug_in_1 = None
+        self.image_plug_in_2 = None
+        self.image_shock_1 = None
+        self.image_shock_2 = None
 
     def has_debug_image(self):
         return self.debug_image != None
@@ -95,20 +99,26 @@ class AEDState:
                         self.CURRENT_AED_STATE = AED_ON
                         detected_x, detected_y, size_org = stage_1_main.retrieve_org_params()
                         stage_2_main.set_params(detected_x, detected_y, size_org)
+                        self.image_turn_on_1, self.image_turn_on_2 = stage_1_main.get_two_image()
 
                 elif self.CURRENT_AED_STATE == AED_ON:
                     is_success = stage_2_main.run(self.last_pic, crt_pic)
+                    self.debug_image,self.debug_image2 = stage_2_main.get_two_image()
                     if is_success:
                         log.print_info(TAG,"at frame "+str(self.frame_counter)+" detect the yellow plug, now turn to stage 3 detection")
                         self.CURRENT_AED_STATE = AED_PULGIN
                         detected_x, detected_y, size_org = stage_2_main.retrieve_params()
                         stage_3_main.set_params(detected_x, detected_y, size_org)
+                        self.image_plug_in_1, self.image_plug_in_2 = stage_2_main.get_two_image()
 
                 elif self.CURRENT_AED_STATE == AED_PULGIN:
                     is_success = stage_3_main.run(self.last_pic, crt_pic)
+                    self.debug_image,self.debug_image2 = stage_3_main.get_two_image()
+
                     if is_success:
                         log.print_info(TAG,"detect the flash button, now turn to end")
                         self.CURRENT_AED_STATE = AED_SHOCK
+                        self.image_shock_1, self.image_shock_2 = stage_3_main.get_two_image()
 
                 elif self.CURRENT_AED_STATE == AED_SHOCK:
                     log.print_info(TAG, "shock delivered")

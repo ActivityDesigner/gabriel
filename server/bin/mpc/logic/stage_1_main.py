@@ -54,7 +54,7 @@ def run(last_valid_frame, frame):
     # hand_x,hand_y = feature_detetor.detect_hand(last_valid_frame,frame)
 
     # print hand_x, hand_y
-
+    print "stage-1"
     global is_hand_appearing;
     global hand_disappear_cnt;
     global detected_x
@@ -83,6 +83,8 @@ def run(last_valid_frame, frame):
     detected_x = x
     detected_y = y
     org_size = size
+
+
 
     # if we detect the aed device is not within the screen or orange button is missing for
     if is_success == False:

@@ -13,6 +13,12 @@ is_flashing = False
 no_flashing_cnt = 0
 NO_FLASHING_CNT_THRESH = 1
 
+current_image = None
+filter_image = None
+
+def get_two_image():
+    return current_image,filter_image
+
 
 def set_params(x,y,size):
     global detected_x
@@ -45,6 +51,10 @@ def run(last_valid_frame,frame):
     global detected_x
     global detected_y
     global org_size
+    global current_image
+    global filter_image
+
+    print "stage-3"
 
     x,y,size,is_success = feature_detetor.detect_orange_btn(last_valid_frame,frame,detected_x,detected_y,org_size,0)
     detected_x = x
@@ -52,6 +62,8 @@ def run(last_valid_frame,frame):
     org_size = size
 
     is_detected = flash_detetor.flash_detection(last_valid_frame, frame, x, y,size)
+
+    current_image,filter_image = flash_detetor.get_two_image()
 
     if is_flashing:
         # to detect when flash no longer flash in the recent 10 frames

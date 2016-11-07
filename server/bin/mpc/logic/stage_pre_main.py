@@ -160,5 +160,4 @@ def prepare(last_valid_frame,frame):
     #     a = 0
     # else:
     #     is_prepared = False
-
     return is_prepared
