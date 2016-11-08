@@ -40,9 +40,11 @@ def left_top_flash_num():
 
 
 def estimate_org_flash_size(area, org_size):
-    #half_size = org_size / 2
-    left = const.Dummy_Org_Flashing_Size_Low #half_size - org_size / 3
-    right = const.Dummy_Org_Flashing_Size_Up #org_size
+    half_size = org_size / 2
+    #left = org_size-const.Dummy_Org_Flashing_Size_Low #half_size - org_size / 3
+    #right = org_size+const.Dummy_Org_Flashing_Size_Up #org_size
+    left = half_size
+    right = org_size
     if area > left and area < right:
         return True
     return False

@@ -100,6 +100,8 @@ class AEDState:
                         detected_x, detected_y, size_org = stage_1_main.retrieve_org_params()
                         stage_2_main.set_params(detected_x, detected_y, size_org)
                         self.image_turn_on_1, self.image_turn_on_2 = stage_1_main.get_two_image()
+                        cv2.imwrite("turn_on_1.jpg",self.image_turn_on_1)
+                        cv2.imwrite("turn_on_2.jpg", self.image_turn_on_2)
 
                 elif self.CURRENT_AED_STATE == AED_ON:
                     is_success = stage_2_main.run(self.last_pic, crt_pic)
@@ -110,6 +112,8 @@ class AEDState:
                         detected_x, detected_y, size_org = stage_2_main.retrieve_params()
                         stage_3_main.set_params(detected_x, detected_y, size_org)
                         self.image_plug_in_1, self.image_plug_in_2 = stage_2_main.get_two_image()
+                        cv2.imwrite("plug_in_1.jpg", self.image_plug_in_1)
+                        cv2.imwrite("plug_in_2.jpg", self.image_plug_in_2)
 
                 elif self.CURRENT_AED_STATE == AED_PULGIN:
                     is_success = stage_3_main.run(self.last_pic, crt_pic)
@@ -119,6 +123,8 @@ class AEDState:
                         log.print_info(TAG,"detect the flash button, now turn to end")
                         self.CURRENT_AED_STATE = AED_SHOCK
                         self.image_shock_1, self.image_shock_2 = stage_3_main.get_two_image()
+                        cv2.imwrite("shock_1.jpg", self.image_shock_1)
+                        cv2.imwrite("shock_2.jpg", self.image_shock_2)
 
                 elif self.CURRENT_AED_STATE == AED_SHOCK:
                     log.print_info(TAG, "shock delivered")

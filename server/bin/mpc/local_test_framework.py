@@ -71,7 +71,7 @@ def main():
 
 
 def process_video():
-    cap = cv2.VideoCapture("video/glass/AED-fixed-2.mp4")
+    cap = cv2.VideoCapture("video/glass/AED-table.mp4")
     ret = True
     while ret:
         ret, frame = cap.read()

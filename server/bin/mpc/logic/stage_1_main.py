@@ -80,6 +80,7 @@ def run(last_valid_frame, frame):
     # dynamically update the orange button location, pass it into the flash detection
     x, y, size, is_success = feature_detetor.detect_orange_btn(last_valid_frame, frame, detected_x, detected_y,
                                                                org_size, 0)
+    #current_image, filter_image = feature_detetor.get_two_image()
     detected_x = x
     detected_y = y
     org_size = size
@@ -93,6 +94,7 @@ def run(last_valid_frame, frame):
         failed_counter += 1
         if failed_counter > Failed_Tolerant:
             # the aed device is missing, start the refind process
+            print "-------------------------------------------------------------------------------------------"
             log.print_error(TAG, "The AED device is missing, preparation again")
             is_find = stage_pre_main.prepare(last_valid_frame, frame)
             if is_find:

@@ -72,7 +72,7 @@ def area_estimate(area, org_size, type):
     area_size_2 = 0
     # orange button
     if (type == 1):
-        area_size_1 = org_size * 0.8;
+        area_size_1 = org_size * 0.4;
         area_size_2 = org_size * 1.5;
     # person hand
     elif type == 2:
@@ -88,6 +88,7 @@ def estimate_org_area_coor(area_size, org_size, x, y, org_x, org_y):
         return False
     if abs(y - org_y) > const.Org_Btn_Coor_Vari:
         return False
+
     if area_size < org_size + const.Org_Btn_Coor_Size_Vari_Up and area_size > org_size - const.Org_Btn_Coor_Size_Vari_Low:
         return True
     return False
@@ -96,7 +97,7 @@ def estimate_org_area_coor(area_size, org_size, x, y, org_x, org_y):
 def estimate_orange_area(area_size, org_size):
     if area_size < org_size + const.Org_Btn_Static_Vari + dynamic_org_size \
             and area_size > org_size - const.Org_Btn_Static_Vari - dynamic_org_size:
-        if(area_size > 100):
+        if area_size > 100:
             return True
     return False
 
@@ -186,6 +187,8 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
 
     global dynamic_org_size
     global last_detected_org_size
+    global current_image
+    global filter_image
 
     #print org_pos_x, org_pos_y, org_size
 
@@ -203,6 +206,8 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
     # ret1, thresh1 = cv2.threshold(black1, 0, 255, cv2.THRESH_BINARY)
     ret2, thresh2 = cv2.threshold(black2, 0, 255, cv2.THRESH_BINARY)
     # cnts1, hierarchy = cv2.findContours(thresh1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    current_image = image2
+    filter_image = black2
     tmp = cv2.findContours(thresh2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     if len(tmp) == 3:
         cnts2 = tmp[1]
@@ -232,7 +237,7 @@ def detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type=
         area0 = cv2.contourArea(cnt)
         if area0 > 100:
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            log.print_debug(TAG, "area0 > 100 " + str(area0) + " Posx " + str(x1) + " Posy " + str(y1))
+            #log.print_debug(TAG, "area0 > 100 " + str(area0) + " Posx " + str(x1) + " Posy " + str(y1))
         if estimate_orange_area(area0, org_size):
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
             log.print_debug(TAG, "candidate area size " + str(area0) + " Posx " + str(x1) + " Posy " + str(y1))
@@ -301,10 +306,11 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
     # cnts1, hierarchy = cv2.findContours(thresh1.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     return1 = cv2.findContours(thresh2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
+    x2, y2, org_size, is_success = detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type)
+
     current_image = image2
     filter_image = black2
 
-    x2, y2, org_size, is_success = detect_orange_btn(image1, image2, org_pos_x, org_pos_y, org_size, show_type)
     if is_success == False:
         return 0, org_pos_x, org_pos_y, org_size
 
@@ -338,10 +344,14 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
+        if area0 > 10:
+            #print area0
+            #x1, y1, w1, h1 = cv2.boundingRect(cnt)
+            #print x1, y1, w1, h1
         if area_estimate(area0, org_size, 1):
-            print area0
+            #print area0
             x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            print x1, y1, w1, h1
+            #print x1, y1, w1, h1
             org_btn_candidate_2.append(cnt)
 
             # cnt1 = determine_orange_btn(org_btn_candidate_1,org_pos_x,org_pos_y)
@@ -360,7 +370,7 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
     if result2 == 1:
         global confidence_counter
         confidence_counter += 1
-    if confidence_counter > 20:
+    if confidence_counter > 10:
         cv2.imwrite("plug.jpg", image2)
         cv2.imwrite("plug-gray.jpg", res2)
         return 1, x2, y2, org_size

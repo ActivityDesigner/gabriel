@@ -9,7 +9,7 @@ import stage_2_main
 import stage_3_main
 
 
-str1 = '../video/glass/AED-fixed-2.mp4'
+str1 = '../video/glass/AED-glass-real.mp4'
 cap = cv2.VideoCapture(str1)
 while not cap.isOpened():
     cap = cv2.VideoCapture(str1)
