@@ -196,8 +196,9 @@ class TpodCheck(threading.Thread):
         # define your global vars here..
         while (not self.stop.wait(0.01)):
             try:
-                crt_pic = TPOD_QUEUE.popleft()
-                TPODStateCheck.logic(crt_pic)
+                b = 1
+                # crt_pic = TPOD_QUEUE.popleft()
+                # TPODStateCheck.logic(crt_pic)
             except IndexError as e:
                 # stop for 10 ms if the queue is empty
                 # print "[TPOD_CHECK_THREAD]: NO PICTURES in TPOD QUEUE " + str(len(PIC_QUEUE))

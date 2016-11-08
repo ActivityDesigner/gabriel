@@ -17,7 +17,7 @@ import base64
 import requests
 
 TPOD_SCORE_THRESHOLD = 0.98
-TPOD_PORT = 48486
+TPOD_PORT = 55268
 
 class TpodState():
     def __init__(self):

@@ -83,6 +83,8 @@ class AEDState:
                     # do preposition
                     is_prepared = stage_pre_main.prepare(self.last_pic, crt_pic)
                     self.debug_image,self.debug_image2 = stage_pre_main.get_two_image()
+                    cv2.imwrite("debug.png", self.debug_image)
+                    cv2.imwrite("debug1.png", self.debug_image2)
                     if is_prepared:
                         image_prepare = stage_pre_main.get_contour_image()
                         log.print_info(TAG,"at frame "+str(self.frame_counter)+" find the aed and well prepared, now turn to stage 1 detection")

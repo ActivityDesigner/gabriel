@@ -12,15 +12,15 @@ def print_info(TAG, msg):
     global f_info
     if f_info == None:
         f_info = open(INFO_FILE_NAME, 'w+')
-    f_info.write(TAG+" "+msg+"\n")
+    #f_info.write(TAG+" "+msg+"\n")
 
 
 def print_debug(TAG, msg):
     global f_debug
     if f_debug == None:
         f_debug = open(DEBUG_FILE_NAME, 'w+')
-    #print TAG+" "+msg+"\n"
-    f_debug.write(TAG+" "+msg+"\n")
+    print TAG+" "+msg+"\n"
+    #f_debug.write(TAG+" "+msg+"\n")
 
 
 def print_error(TAG, msg):
@@ -28,7 +28,7 @@ def print_error(TAG, msg):
     return
     if f_error == None:
         f_error = open(ERROR_FILE_NAME, 'w+')
-    f_error.write(TAG+" "+msg+"\n")
+    #f_error.write(TAG+" "+msg+"\n")
 
 
 def close_all():

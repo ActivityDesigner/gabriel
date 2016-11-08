@@ -344,7 +344,7 @@ def detect_yellow_plug(image1, image2, org_pos_x, org_pos_y, org_size, show_type
         cnt_len = cv2.arcLength(cnt, True)
         area0 = cv2.contourArea(cnt)
         cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
-        if area0 > 10:
+        # if area0 > 10:
             #print area0
             #x1, y1, w1, h1 = cv2.boundingRect(cnt)
             #print x1, y1, w1, h1
